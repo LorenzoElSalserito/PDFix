@@ -1,0 +1,41 @@
+# Dependencies
+client/node_modules/
+server/vendor/
+
+# Build output
+client/dist/
+dist/
+pdfix-deploy.tar.gz
+
+# IDE
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+
+# PHP
+server/.phpunit.cache/
+server/.phpunit.result.cache
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Composer phar (auto-downloaded by build script)
+deploy/composer.phar
+
+# Temp / uploads
+server/tmp/
+*.tmp
+.claude/
