@@ -1,0 +1,197 @@
+name: Release
+
+# Costruisce i pacchetti per Windows, macOS e Linux, li verifica e — quando il
+# riferimento e' un tag — pubblica la release su GitHub.
+#
+# La versione non viene mai incrementata qui: arriva dal commit
+# (BUILD_DEF §3.5). Per rilasciare: `npm run dist` in locale, commit del bump,
+# poi `git tag vX.Y.Z && git push --tags`.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PDFIX_NO_BUMP: '1'
+  # Nessun certificato in CI: gli artefatti non vengono firmati.
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  validate:
+    name: Test completi
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Display virtuale
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y xvfb
+
+      - run: npm ci
+
+      - name: Test dell'interfaccia
+        run: npm run test:unit
+
+      - name: Test del motore e della pipeline
+        run: npm run test:core
+
+      - name: Test end-to-end
+        run: xvfb-run --auto-servernum npm run test:e2e
+
+  package:
+    name: Pacchetti ${{ matrix.label }}
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: Linux
+            artifact: linux
+            dist_script: dist:linux
+          - os: windows-latest
+            label: Windows
+            artifact: windows
+            dist_script: dist:win
+          - os: macos-latest
+            label: macOS
+            artifact: macos
+            dist_script: dist:mac
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      # `fakeroot` e `dpkg-dev` servono a ricostruire il .deb conforme,
+      # `squashfs-tools` a riparare e verificare lo snap, `lintian` ai controlli
+      # informativi sul pacchetto finito.
+      - name: Strumenti di packaging Debian e Snap
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y fakeroot dpkg-dev lintian squashfs-tools xvfb
+
+      - run: npm ci
+
+      - name: Costruisci i pacchetti
+        run: npm run ${{ matrix.dist_script }}
+
+      - name: Certifica il pacchetto Debian
+        if: runner.os == 'Linux'
+        run: npm run verify:deb
+
+      - name: Verifica l'immagine Snap
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          for snap in release/*.snap; do
+            node scripts/snap-finalize.js "$snap"
+          done
+
+      - name: Test end-to-end sull'applicazione impacchettata (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:e2e:packaged
+
+      # Gli artefatti Linux vengono provati per davvero: il payload dello snap e
+      # quello dell'AppImage sono estratti e la suite gira su quei binari.
+      - name: Test end-to-end sul payload dello Snap
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:e2e:snap
+
+      - name: Test end-to-end sul payload dell'AppImage
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:e2e:appimage
+
+      - name: Test end-to-end sull'applicazione impacchettata
+        if: runner.os != 'Linux'
+        run: npm run test:e2e:packaged
+
+      - name: Raccogli le tracce dei test falliti
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces-${{ matrix.artifact }}
+          path: |
+            test-results/**
+            playwright-report/**
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Pubblica gli artefatti
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdfix-${{ matrix.artifact }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            release/*.deb
+            release/*.AppImage
+            release/*.snap
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+
+  release:
+    name: Pubblicazione su GitHub
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefatti
+          pattern: pdfix-*
+          merge-multiple: true
+
+      - name: Elenco degli artefatti
+        run: ls -la artefatti
+
+      - name: Estrai le note di rilascio dal changelog
+        id: note
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            echo 'body<<CHANGELOG_EOF'
+            awk -v version="$version" '
+              $0 ~ "^## \\[" version "\\]" { found = 1; next }
+              found && /^## \[/ { exit }
+              found { print }
+            ' CHANGELOG.md
+            echo 'CHANGELOG_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.note.outputs.body }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: artefatti/**/*

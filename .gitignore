@@ -1,41 +1,49 @@
-# Dependencies
-client/node_modules/
-server/vendor/
+# Dipendenze
+node_modules/
 
-# Build output
-client/dist/
+# Output di build e artefatti di release
+# Le icone generate restano versionate: servono al README e alla guardia
+# verify:packaging anche prima di rigenerarle.
 dist/
-pdfix-deploy.tar.gz
+release/
 
-# IDE
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/usage.statistics.xml
-.idea/shelf/
+# Test
+test-results/
+playwright-report/
+blob-report/
+coverage/
+
+# Stato locale della pipeline di release
+scripts/.release-pending.json
+
+# Pianificazione interna, non fa parte della distribuzione
+PLAN.md
+
+# IDE ed editor
+# Le configurazioni di avvio restano versionate: sono i pulsanti di esecuzione
+# del progetto (avvio, build, test), il resto di .idea/ e' stato locale.
+.idea/*
+!.idea/runConfigurations/
+*.iml
 *.iws
+.vscode/
+*.swp
 
-# OS
+# Sistema operativo
 .DS_Store
 Thumbs.db
 *~
 
-# PHP
-server/.phpunit.cache/
-server/.phpunit.result.cache
-
-# Env
+# Ambiente
 .env
 .env.local
 .env.*.local
 
-# Logs
+# Log e temporanei
 *.log
 npm-debug.log*
-
-# Composer phar (auto-downloaded by build script)
-deploy/composer.phar
-
-# Temp / uploads
-server/tmp/
 *.tmp
+.cache/
+
+# Claude Code
 .claude/

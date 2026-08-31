@@ -1,0 +1,103 @@
+name: CI
+
+# Verifica ogni push e ogni pull request sui tre sistemi operativi supportati.
+# I pacchetti non vengono costruiti qui: se ne occupa "Release" (build.yml).
+
+on:
+  push:
+    branches: ['main', 'master']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # BUILD_DEF §3.5: in CI la versione arriva dal commit, non da un bump locale.
+  PDFIX_NO_BUMP: '1'
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      # Electron ha bisogno di un server X anche per la finestra dei test.
+      - name: Display virtuale (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y xvfb
+
+      - name: Installa le dipendenze
+        run: npm ci
+
+      - name: Compila interfaccia e motore
+        run: npm run build
+
+      - name: Test dell'interfaccia
+        run: npm run test:unit
+
+      - name: Test del motore e della pipeline
+        run: npm run test:core
+
+      # Electron ha bisogno di un display: su Linux lo fornisce Xvfb, mentre i
+      # runner Windows e macOS hanno gia' una sessione grafica.
+      - name: Test end-to-end (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:e2e
+
+      - name: Test end-to-end (Windows e macOS)
+        if: runner.os != 'Linux'
+        run: npm run test:e2e
+
+      - name: Raccogli le tracce dei test falliti
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces-${{ matrix.os }}
+          path: |
+            test-results/**
+            playwright-report/**
+          retention-days: 7
+          if-no-files-found: ignore
+
+  packaging-guard:
+    name: Coerenza del packaging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Installa le dipendenze
+        run: npm ci
+
+      # Rigenera icone e bundle, poi verifica versioni, changelog e artefatti
+      # attesi: qualunque disallineamento emerge qui, non in fase di release.
+      - name: Icone, build e guardia di coerenza
+        run: npm run package:prepare
+
+      - name: Versione dichiarata
+        run: npm run version:show

@@ -1,0 +1,61 @@
+{
+  "releases": [
+    {
+      "version": "1.0.2",
+      "date": "Mon, 31 Aug 2026 17:28:50 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "entries": [
+        "Added: Pulsante «Donazioni» nella finestra informazioni: apre nel browser la pagina PayPal del progetto. Il contributo è facoltativo e non sblocca alcuna funzione.",
+        "Added: Configurazioni di avvio di IntelliJ IDEA versionate nel repository: avvio in sviluppo, build e avvio, le tre suite di test e la build dei pacchetti Linux, disponibili come pulsanti appena si apre il progetto.",
+        "Fixed: L'avvio in sviluppo non partiva più: Vite metteva il server solo su IPv6 mentre lo script lo attendeva su 127.0.0.1, così Electron non veniva mai lanciato e l'attesa non finiva. L'indirizzo del server di sviluppo è ora esplicito.",
+        "Fixed: Gli script di verifica e di collaudo scelgono l'artefatto della versione in corso: con più build nella cartella `release/` certificavano — o collaudavano — quella precedente."
+      ]
+    },
+    {
+      "version": "1.0.1",
+      "date": "Mon, 31 Aug 2026 07:22:02 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "entries": [
+        "Added: Schermata di avvio con logo: resta visibile almeno tre secondi e lascia il posto alla finestra principale solo quando questa è pronta, così l'applicazione non può più sembrare bloccata all'apertura.",
+        "Added: Pulsante «i» nell'intestazione con versione, autore, licenza AGPLv3 e versioni del runtime.",
+        "Added: Comando «Segnala un Bug»: apre il programma di posta predefinito con oggetto `[BUG PDFIX]`, destinatario di contatto e dettagli della versione già nel corpo del messaggio.",
+        "Added: Traduzione inglese completa dell'interfaccia, delle finestre di sistema e dei messaggi del processo principale, con selettore di lingua accanto al pulsante delle impostazioni; la lingua scelta viene ricordata fra le sessioni."
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "Sun, 30 Aug 2026 22:27:28 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "entries": [
+        "Added: Manipolazione delle pagine: estrazione, eliminazione, rotazione e divisione in più file.",
+        "Added: Creazione di PDF da immagini JPG e PNG, a dimensione originale o impaginate su A4.",
+        "Added: Filigrana testuale, numerazione delle pagine, modifica dei metadati e ottimizzazione del documento.",
+        "Added: Parametri per operazione: ogni comando che ne ha bisogno chiede i propri valori in una finestra generata dal catalogo.",
+        "Added: Modalità scura e zoom dell'interfaccia dal 10% al 150%, entrambi ricordati fra le sessioni.",
+        "Added: Icona dell'applicazione nell'intestazione e finestra utilizzabile da 800×600 fino al 4K.",
+        "Changed: La barra dei menu di Chromium non viene più mostrata su Windows e Linux: i comandi sono tutti nell'interfaccia, con le scorciatoie da tastiera corrispondenti.",
+        "Changed: L'elenco dei file accetta anche immagini; ogni operazione dichiara i formati che sa trattare e resta disattivata sugli altri.",
+        "Fixed: La finestra poteva restare invisibile quando il compositore grafico era fermo (schermo bloccato o sessione minima): ora la comparsa è garantita anche dal completamento del caricamento."
+      ]
+    },
+    {
+      "version": "0.9.0",
+      "date": "Sun, 30 Aug 2026 22:00:00 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "entries": [
+        "Added: Applicazione desktop Electron per Windows, macOS e Linux (deb, AppImage, Snap, NSIS, DMG).",
+        "Added: Unione di PDF e conversione in PDF/A-1b con motore interno, senza runtime esterni.",
+        "Added: Impostazioni con limite di memoria, timeout e attivazione delle singole funzionalita.",
+        "Added: Verifica automatica dei pacchetti prodotti e integrazione continua sulle tre piattaforme."
+      ]
+    }
+  ]
+}

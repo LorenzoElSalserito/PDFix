@@ -1,9 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="PHP Built-in Server" type="PhpBuiltInWebServerRunConfigurationType" factoryName="PHP Built-in Web Server">
-    <option name="documentRoot" value="$PROJECT_DIR$/server/public" />
-    <option name="host" value="localhost" />
-    <option name="port" value="8080" />
-    <option name="useRouter" value="false" />
-    <method v="2" />
-  </configuration>
-</component>

@@ -1,0 +1,182 @@
+{
+  "name": "pdfix",
+  "version": "1.0.2",
+  "description": "Applicazione desktop per unire PDF e convertirli in PDF/A-1b, completamente offline",
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/LorenzoElSalserito/PDFix",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LorenzoElSalserito/PDFix.git"
+  },
+  "author": {
+    "name": "Lorenzo De Marco",
+    "email": "LorenzoElSalserito@users.noreply.github.com"
+  },
+  "desktopName": "PDFix.desktop",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.js",
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=9"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"vite --config vite.renderer.config.js\" \"wait-on http://127.0.0.1:5173 && PDFIX_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "build": "node scripts/clean-dist.js && npm run build:renderer && npm run build:engine",
+    "build:renderer": "vite build --config vite.renderer.config.js",
+    "build:engine": "vite build --config vite.engine.config.js",
+    "start": "npm run build && electron .",
+    "icons": "node scripts/generate-icons.js",
+    "test:unit": "vitest run --config vitest.config.js",
+    "test:core": "node --test test/",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:packaged": "node scripts/run-packaged-e2e.js",
+    "test:e2e:snap": "node scripts/run-packaged-e2e.js --snap",
+    "test:e2e:appimage": "node scripts/run-packaged-e2e.js --appimage",
+    "test": "npm run test:unit && npm run test:core && npm run test:e2e",
+    "version:bump": "node scripts/version-bump.js",
+    "version:show": "node scripts/version-bump.js --no-bump --dry-run",
+    "verify:packaging": "node scripts/verify-packaging-assets.js",
+    "verify:deb": "node scripts/verify-deb.js",
+    "verify:snap": "node scripts/snap-finalize.js",
+    "package:prepare": "npm run icons && npm run build && npm run verify:packaging",
+    "dist": "npm run version:bump && npm run package:prepare && electron-builder",
+    "dist:linux": "npm run version:bump && npm run package:prepare && electron-builder --linux deb AppImage snap",
+    "dist:win": "npm run version:bump && npm run package:prepare && electron-builder --win nsis",
+    "dist:mac": "npm run version:bump && npm run package:prepare && electron-builder --mac dmg zip",
+    "dist:all": "npm run version:bump && npm run package:prepare && electron-builder --linux deb AppImage snap --win nsis"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vue/test-utils": "^2.5.0",
+    "autoprefixer": "^10.4.0",
+    "concurrently": "^9.0.0",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.0.12",
+    "happy-dom": "^20.11.1",
+    "js-yaml": "^5.4.1",
+    "pdf-lib": "^1.17.1",
+    "png-to-ico": "^3.0.2",
+    "postcss": "^8.4.0",
+    "sharp": "^0.35.4",
+    "tailwindcss": "^3.4.0",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.10",
+    "vue": "^3.5.42",
+    "vuedraggable": "^4.1.0",
+    "wait-on": "^8.0.0"
+  },
+  "build": {
+    "appId": "it.lorenzodemarco.pdfix",
+    "productName": "PDFix",
+    "copyright": "Copyright © 2026 Lorenzo De Marco",
+    "asar": true,
+    "artifactName": "pdfix_v${version}_${arch}.${ext}",
+    "afterAllArtifactBuild": "scripts/after-all-artifact-build.cjs",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "publish": null,
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "core/catalog.js",
+      "build/icon.png",
+      "package.json",
+      "!node_modules/**/*",
+      "!**/*.map"
+    ],
+    "linux": {
+      "target": [
+        "deb",
+        "AppImage",
+        "snap"
+      ],
+      "category": "Office;Utility",
+      "icon": "build/icons",
+      "synopsis": "Unione di PDF e conversione in PDF/A, offline",
+      "description": "PDFix unisce più documenti PDF in un unico file e li converte in PDF/A-1b. L'elaborazione è interamente locale: nessun file lascia il computer.",
+      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "desktop": {
+        "entry": {
+          "Name": "PDFix",
+          "Comment": "Unisci PDF e converti in PDF/A",
+          "Categories": "Office;Utility;",
+          "MimeType": "application/pdf;",
+          "Keywords": "pdf;merge;unione;pdfa;archiviazione;"
+        }
+      },
+      "executableName": "pdfix",
+      "syncDesktopName": true
+    },
+    "deb": {
+      "packageCategory": "utils",
+      "priority": "optional"
+    },
+    "snapcraft": {
+      "base": "core22",
+      "core22": {
+        "confinement": "strict",
+        "grade": "stable",
+        "summary": "Unione di PDF e conversione in PDF/A, completamente offline",
+        "allowNativeWayland": true,
+        "plugs": [
+          "default",
+          "home",
+          "removable-media"
+        ]
+      }
+    },
+    "appImage": {
+      "license": "LICENSE"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "PDFix",
+      "uninstallDisplayName": "PDFix ${version}",
+      "license": "LICENSE"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "darkModeSupport": false
+    },
+    "dmg": {
+      "title": "PDFix ${version}"
+    }
+  }
+}

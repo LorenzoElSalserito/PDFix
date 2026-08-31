@@ -1,9 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Vitest" type="js.build_tools.npm">
-    <package-json value="$PROJECT_DIR$/client/package.json" />
+  <configuration default="false" name="Test interfaccia" type="js.build_tools.npm">
+    <package-json value="$PROJECT_DIR$/package.json" />
     <command value="run" />
     <scripts>
-      <script value="test" />
+      <script value="test:unit" />
     </scripts>
     <node-interpreter value="project" />
     <method v="2" />

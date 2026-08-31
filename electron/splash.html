@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <title>PDFix</title>
+    <style>
+      /*
+       * Lo splash è una pagina statica e autosufficiente: nessuno script, nessun
+       * bundle, nessuna dipendenza. Deve poter comparire anche se qualcosa più a
+       * valle non è ancora pronto — è esattamente il suo scopo.
+       */
+      :root {
+        color-scheme: light dark;
+        --fondo: #ffffff;
+        --testo: #1e293b;
+        --tenue: #64748b;
+        --bordo: #e2e8f0;
+        --barra: #2563eb;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fondo: #0f172a;
+          --testo: #f1f5f9;
+          --tenue: #94a3b8;
+          --bordo: #1e293b;
+        }
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background: var(--fondo);
+        border: 1px solid var(--bordo);
+        border-radius: 14px;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: var(--testo);
+        user-select: none;
+        overflow: hidden;
+      }
+
+      img {
+        width: 96px;
+        height: 96px;
+      }
+
+      h1 {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      p {
+        font-size: 12px;
+        color: var(--tenue);
+      }
+
+      .barra {
+        width: 200px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--bordo);
+        overflow: hidden;
+      }
+
+      /* L'avanzamento dura quanto lo splash: tre secondi, poi la finestra vera. */
+      .barra span {
+        display: block;
+        height: 100%;
+        width: 100%;
+        border-radius: 999px;
+        background: var(--barra);
+        transform-origin: left center;
+        animation: avanza 3s linear forwards;
+      }
+
+      @keyframes avanza {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <img src="../build/icon.png" alt="" />
+    <h1>PDFix</h1>
+    <div class="barra"><span></span></div>
+    <p id="stato">Avvio in corso…</p>
+  </body>
+</html>
