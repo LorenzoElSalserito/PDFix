@@ -4,7 +4,7 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { addFiles, fixtures, launchApp } from './helpers.js'
+import { addFiles, fixtures, launchApp, riordina } from './helpers.js'
 
 test('trascinare una riga cambia l ordine di unione', async () => {
   const session = await launchApp()
@@ -13,8 +13,7 @@ test('trascinare una riga cambia l ordine di unione', async () => {
     await addFiles(page)
     await expect(page.getByTestId('file-name').first()).toContainText('sample1.pdf')
 
-    const handles = page.locator('.drag-handle')
-    await handles.nth(1).dragTo(handles.first())
+    await riordina(page, 1, 0)
 
     await expect(page.getByTestId('file-name').first()).toContainText('sample2.pdf')
     await expect(page.getByTestId('file-name').nth(1)).toContainText('sample1.pdf')
@@ -43,8 +42,7 @@ test('con tre documenti l ultimo puo salire in cima', async () => {
     await addFiles(page)
     await expect(page.getByTestId('file-item')).toHaveCount(3)
 
-    const handles = page.locator('.drag-handle')
-    await handles.nth(2).dragTo(handles.first())
+    await riordina(page, 2, 0)
 
     await expect(page.getByTestId('file-name').first()).toContainText('terzo.pdf')
     await expect(page.getByTestId('file-name').nth(1)).toContainText('sample1.pdf')

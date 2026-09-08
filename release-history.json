@@ -1,11 +1,23 @@
 {
   "releases": [
     {
+      "version": "1.3.1",
+      "date": "Tue, 08 Sep 2026 23:45:43 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
+      "entries": [
+        "Fixed: Le finestre di dialogo non si chiudono più quando un trascinamento cominciato dentro il pannello finisce sullo sfondo. Collocare la firma vicino al bordo e rilasciare il puntatore fuori dal riquadro faceva sparire la finestra con tutto il lavoro fatto — e faceva fallire i test end-to-end sui runner macOS, dove la finestra è più piccola e il gesto esce prima. Un clic vero sullo sfondo continua a chiudere.",
+        "Fixed: I gesti dei test end-to-end si misurano in frazioni dell'anteprima invece che in pixel fissi: la stessa prova vale su qualunque dimensione di finestra.",
+        "Changed: Il manutentore dei pacchetti è `Lorenzo De Marco <commercial.lorenzodm@gmail.com>` ovunque — autore npm, campo `Maintainer` del `.deb`, costante della pipeline e tutte e sette le voci dello storico delle release. L'alias no-reply di GitHub usato prima non riceve posta: come manutentore Debian era un indirizzo irraggiungibile. La guardia di coerenza ora controlla che i quattro punti restino allineati, e un test rifiuta esplicitamente un indirizzo `users.noreply.github.com`."
+      ]
+    },
+    {
       "version": "1.3.0",
       "date": "Tue, 08 Sep 2026 23:09:32 +0200",
       "distribution": "unstable",
       "urgency": "medium",
-      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
       "entries": [
         "Added: **Firma su foglio**: l'immagine della propria firma — un PNG o un JPG — appoggiata sul documento. La finestra mostra l'anteprima della pagina vera, disegnata in locale, e la firma si colloca trascinandola: la maniglia la ridimensiona, le frecce la spostano di poco, il selettore cambia pagina. Quello che si vede nell'anteprima è quello che il documento riceve, perché la posizione viaggia in frazioni della pagina e non in pixel dello schermo.",
         "Added: Le pagine ruotate sono gestite: su un foglio con `/Rotate` la firma resta dritta e dentro il margine invece di comparire coricata.",
@@ -19,7 +31,7 @@
       "date": "Tue, 08 Sep 2026 18:38:43 +0200",
       "distribution": "unstable",
       "urgency": "medium",
-      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
       "entries": [
         "Added: La pulsantiera delle funzionalità è ora divisa per gruppi — Documento, Pagine, Impaginazione, Contenuto, Moduli, Sicurezza — con schede che ne mostrano il numero e filtrano i comandi. Ventisei pulsanti affiancati erano un muro: il raggruppamento vive nel catalogo, accanto ai descrittori, così una funzionalità nuova nasce già al suo posto.",
         "Added: Ogni comando è una scheda con il simbolo del suo gruppo; un punto verde segnala le operazioni che producono sempre un PDF/A, e l'interruttore PDF/A è diventato una pastiglia accanto alle schede.",
@@ -40,7 +52,7 @@
       "date": "Mon, 31 Aug 2026 23:41:50 +0200",
       "distribution": "unstable",
       "urgency": "medium",
-      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
       "entries": [
         "Added: **Più pagine per foglio**: due o quattro pagine su ogni foglio, con margine regolabile e cornice di taglio facoltativa.",
         "Added: **Libretto**: imposizione a sella per la rilegatura a punto metallico, con le facciate bianche aggiunte quando le pagine non sono un multiplo di quattro.",
@@ -68,7 +80,7 @@
       "date": "Mon, 31 Aug 2026 17:28:50 +0200",
       "distribution": "unstable",
       "urgency": "medium",
-      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
       "entries": [
         "Added: Pulsante «Donazioni» nella finestra informazioni: apre nel browser la pagina PayPal del progetto. Il contributo è facoltativo e non sblocca alcuna funzione.",
         "Added: Configurazioni di avvio di IntelliJ IDEA versionate nel repository: avvio in sviluppo, build e avvio, le tre suite di test e la build dei pacchetti Linux, disponibili come pulsanti appena si apre il progetto.",
@@ -81,7 +93,7 @@
       "date": "Mon, 31 Aug 2026 07:22:02 +0200",
       "distribution": "unstable",
       "urgency": "medium",
-      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
       "entries": [
         "Added: Schermata di avvio con logo: resta visibile almeno tre secondi e lascia il posto alla finestra principale solo quando questa è pronta, così l'applicazione non può più sembrare bloccata all'apertura.",
         "Added: Pulsante «i» nell'intestazione con versione, autore, licenza AGPLv3 e versioni del runtime.",
@@ -94,7 +106,7 @@
       "date": "Sun, 30 Aug 2026 22:27:28 +0200",
       "distribution": "unstable",
       "urgency": "medium",
-      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
       "entries": [
         "Added: Manipolazione delle pagine: estrazione, eliminazione, rotazione e divisione in più file.",
         "Added: Creazione di PDF da immagini JPG e PNG, a dimensione originale o impaginate su A4.",
@@ -112,7 +124,7 @@
       "date": "Sun, 30 Aug 2026 22:00:00 +0200",
       "distribution": "unstable",
       "urgency": "medium",
-      "maintainer": "Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
       "entries": [
         "Added: Applicazione desktop Electron per Windows, macOS e Linux (deb, AppImage, Snap, NSIS, DMG).",
         "Added: Unione di PDF e conversione in PDF/A-1b con motore interno, senza runtime esterni.",

@@ -3,7 +3,8 @@
     v-if="operation"
     data-testid="operation-dialog"
     class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/40 dark:bg-slate-950/70 p-2 sm:p-4 overflow-y-auto"
-    @click.self="$emit('close')"
+    @mousedown="armBackdrop"
+    @click.self="closeFromBackdrop"
   >
     <div
       :class="[
@@ -183,7 +184,7 @@ const props = defineProps({
   files: { type: Array, default: () => [] },
 })
 
-defineEmits(['close', 'confirm'])
+const emit = defineEmits(['close', 'confirm'])
 
 const { t } = useI18n()
 const bridge = useBridge()
@@ -271,6 +272,23 @@ async function pickFile(param) {
 
 function update(param, value) {
   values.value = { ...values.value, [param.key]: value }
+}
+
+/**
+ * Lo sfondo chiude la finestra solo se il gesto è cominciato sullo sfondo.
+ *
+ * Trascinando la firma — o qualunque cosa dentro il pannello — il puntatore
+ * può essere rilasciato fuori dal pannello: il clic che ne risulta colpisce lo
+ * sfondo e la finestra si chiuderebbe portandosi via il lavoro appena fatto.
+ */
+const startedOnBackdrop = ref(false)
+
+function armBackdrop(event) {
+  startedOnBackdrop.value = event.target === event.currentTarget
+}
+
+function closeFromBackdrop() {
+  if (startedOnBackdrop.value) emit('close')
 }
 
 /**

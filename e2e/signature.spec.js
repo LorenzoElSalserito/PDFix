@@ -90,7 +90,10 @@ test('la firma finisce nel punto in cui e stata trascinata', async () => {
     await apriFirma(page)
 
     const prima = await riquadro(page)
-    await trascina(page, -70, -90)
+    // Lo scostamento è una frazione del foglio: su una finestra più piccola —
+    // i runner di macOS, per dire — un valore in pixel fissi uscirebbe
+    // dall'anteprima e il gesto finirebbe altrove.
+    await trascina(page, -prima.stage.width * 0.25, -prima.stage.height * 0.25)
     const dopo = await riquadro(page)
 
     expect(dopo.x, 'il riquadro si è spostato a sinistra').toBeLessThan(prima.x)
@@ -160,7 +163,13 @@ test('la maniglia ridimensiona la firma e il documento la riceve piu grande', as
     const maniglia = await page.getByTestId('signature-resize').boundingBox()
     await page.mouse.move(maniglia.x + maniglia.width / 2, maniglia.y + maniglia.height / 2)
     await page.mouse.down()
-    await page.mouse.move(maniglia.x + 40, maniglia.y + 40, { steps: 10 })
+    // Si tira fino all'angolo interno del foglio: dentro l'anteprima su
+    // qualunque dimensione di finestra, e la firma cresce di sicuro.
+    await page.mouse.move(
+      prima.stage.x + prima.stage.width - 2,
+      prima.stage.y + prima.stage.height - 2,
+      { steps: 10 },
+    )
     await page.mouse.up()
 
     const dopo = await riquadro(page)
@@ -227,6 +236,38 @@ test('senza immagine la finestra lo dice e non produce nulla', async () => {
     await page.getByTestId('operation-confirm').click()
     await expect(page.getByTestId('status-error')).toContainText('obbligatorio')
     await expect(page.getByTestId('status-success')).toHaveCount(0)
+  } finally {
+    await app.cleanup()
+  }
+})
+
+test('un trascinamento che finisce fuori dal pannello non chiude la finestra', async () => {
+  const app = await conFirma()
+  try {
+    const { page } = app
+    await addFiles(page)
+    await apriFirma(page)
+
+    const overlay = await page.getByTestId('signature-overlay').boundingBox()
+    const finestra = page.viewportSize() ?? (await page.evaluate(() => ({ width: innerWidth, height: innerHeight })))
+
+    // Punto sicuramente sullo sfondo: il pannello è centrato e largo al più
+    // due terzi della finestra, il margine sinistro è scoperto.
+    const sfondo = { x: 6, y: Math.round(finestra.height / 2) }
+
+    // Si trascina la firma fin lì: il puntatore esce dal pannello e si rilascia
+    // sullo sfondo. Chiudere significherebbe buttare via il lavoro appena fatto.
+    await page.mouse.move(overlay.x + overlay.width / 2, overlay.y + overlay.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(sfondo.x, sfondo.y, { steps: 10 })
+    await page.mouse.up()
+
+    await expect(page.getByTestId('operation-dialog')).toBeVisible()
+    await expect(page.getByTestId('signature-stage')).toBeVisible()
+
+    // Un clic vero sullo sfondo, invece, chiude come sempre.
+    await page.mouse.click(sfondo.x, sfondo.y)
+    await expect(page.getByTestId('operation-dialog')).toHaveCount(0)
   } finally {
     await app.cleanup()
   }

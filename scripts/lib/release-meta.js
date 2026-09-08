@@ -57,7 +57,7 @@ export const PKG_NAME = 'pdfix'
 /** Sezione valida dell'archivio Debian (vedi lintian archive-sections). */
 export const SECTION = 'utils'
 
-export const MAINTAINER = 'Lorenzo De Marco <LorenzoElSalserito@users.noreply.github.com>'
+export const MAINTAINER = 'Lorenzo De Marco <commercial.lorenzodm@gmail.com>'
 export const DISTRIBUTION = 'unstable'
 export const URGENCY = 'medium'
 export const UPSTREAM_NAME = 'PDFix'

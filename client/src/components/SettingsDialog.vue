@@ -3,7 +3,8 @@
     v-if="open"
     data-testid="settings-dialog"
     class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/40 dark:bg-slate-950/70 p-2 sm:p-4 overflow-y-auto"
-    @click.self="$emit('close')"
+    @mousedown="armBackdrop"
+    @click.self="closeFromBackdrop"
   >
     <div
       class="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[96vh] sm:max-h-[90vh] overflow-y-auto rounded-xl shadow-xl border border-transparent dark:border-slate-700"
@@ -177,7 +178,7 @@ const props = defineProps({
   diagnostics: { type: Object, default: null },
 })
 
-defineEmits(['close', 'save', 'reset', 'diagnose'])
+const emit = defineEmits(['close', 'save', 'reset', 'diagnose'])
 
 const { t } = useI18n()
 
@@ -235,5 +236,20 @@ function clone(value) {
 
 function serializedDraft() {
   return clone(draft.value)
+}
+
+/**
+ * Lo sfondo chiude la finestra solo se il gesto è cominciato sullo sfondo:
+ * un trascinamento — o una selezione di testo — che finisce fuori dal pannello
+ * non è la richiesta di chiudere.
+ */
+const startedOnBackdrop = ref(false)
+
+function armBackdrop(event) {
+  startedOnBackdrop.value = event.target === event.currentTarget
+}
+
+function closeFromBackdrop() {
+  if (startedOnBackdrop.value) emit('close')
 }
 </script>

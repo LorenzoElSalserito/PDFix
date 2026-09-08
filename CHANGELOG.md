@@ -11,6 +11,15 @@ scrive a mano: `npm run dist` la consolida in una sezione datata, aggiorna
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-08
+
+### Fixed
+- Le finestre di dialogo non si chiudono più quando un trascinamento cominciato dentro il pannello finisce sullo sfondo. Collocare la firma vicino al bordo e rilasciare il puntatore fuori dal riquadro faceva sparire la finestra con tutto il lavoro fatto — e faceva fallire i test end-to-end sui runner macOS, dove la finestra è più piccola e il gesto esce prima. Un clic vero sullo sfondo continua a chiudere.
+- I gesti dei test end-to-end si misurano in frazioni dell'anteprima invece che in pixel fissi: la stessa prova vale su qualunque dimensione di finestra.
+
+### Changed
+- Il manutentore dei pacchetti è `Lorenzo De Marco <commercial.lorenzodm@gmail.com>` ovunque — autore npm, campo `Maintainer` del `.deb`, costante della pipeline e tutte e sette le voci dello storico delle release. L'alias no-reply di GitHub usato prima non riceve posta: come manutentore Debian era un indirizzo irraggiungibile. La guardia di coerenza ora controlla che i quattro punti restino allineati, e un test rifiuta esplicitamente un indirizzo `users.noreply.github.com`.
+
 ## [1.3.0] - 2026-09-08
 
 ### Added

@@ -3,7 +3,8 @@
     v-if="open"
     data-testid="info-dialog"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-slate-950/70 p-3 sm:p-4"
-    @click.self="$emit('close')"
+    @mousedown="armBackdrop"
+    @click.self="closeFromBackdrop"
   >
     <div
       class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-xl border border-transparent dark:border-slate-700 overflow-hidden"
@@ -61,6 +62,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import icon from '../assets/app-icon.png'
 import { useI18n } from '../composables/useI18n.js'
 
@@ -69,7 +71,22 @@ defineProps({
   info: { type: Object, default: null },
 })
 
-defineEmits(['close', 'report', 'donate'])
+const emit = defineEmits(['close', 'report', 'donate'])
 
 const { t } = useI18n()
+
+/**
+ * Lo sfondo chiude la finestra solo se il gesto è cominciato sullo sfondo:
+ * un trascinamento — o una selezione di testo — che finisce fuori dal pannello
+ * non è la richiesta di chiudere.
+ */
+const startedOnBackdrop = ref(false)
+
+function armBackdrop(event) {
+  startedOnBackdrop.value = event.target === event.currentTarget
+}
+
+function closeFromBackdrop() {
+  if (startedOnBackdrop.value) emit('close')
+}
 </script>

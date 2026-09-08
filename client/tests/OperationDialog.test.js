@@ -121,6 +121,25 @@ describe('OperationDialog', () => {
     expect(bridge.inspect).not.toHaveBeenCalled()
   })
 
+  it('lo sfondo chiude la finestra solo se il gesto e cominciato li', async () => {
+    installBridge()
+    const wrapper = mount(OperationDialog, { props: { operation: extract, files: ['/tmp/a.pdf'] } })
+    const sfondo = wrapper.get('[data-testid="operation-dialog"]')
+    const pannello = wrapper.get('[data-testid="operation-confirm"]')
+
+    // Trascinamento cominciato dentro il pannello e finito sullo sfondo: la
+    // finestra resta aperta, altrimenti si perderebbe quello che si stava
+    // facendo — collocare la firma, per esempio.
+    await pannello.trigger('mousedown')
+    await sfondo.trigger('click')
+    expect(wrapper.emitted('close')).toBeUndefined()
+
+    // Un clic vero sullo sfondo, invece, chiude.
+    await sfondo.trigger('mousedown')
+    await sfondo.trigger('click')
+    expect(wrapper.emitted('close')).toHaveLength(1)
+  })
+
   it('si chiude senza eseguire nulla', async () => {
     const wrapper = mount(OperationDialog, { props: { operation: extract } })
     await wrapper.get('[data-testid="operation-cancel"]').trigger('click')

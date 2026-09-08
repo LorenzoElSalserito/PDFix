@@ -184,6 +184,22 @@ export async function launchApp({
   }
 }
 
+/**
+ * Riordina l'elenco trascinando una maniglia sopra un'altra.
+ *
+ * Si usa `dragTo`, non una sequenza di eventi del mouse: Sortable si appoggia
+ * al trascinamento nativo di HTML5, che nasce da eventi `drag*` e non da
+ * `mousemove`. Muovere il puntatore a mano non sposta nulla.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} from indice della riga da spostare
+ * @param {number} to   indice della riga su cui lasciarla
+ */
+export async function riordina(page, from, to) {
+  const handles = page.locator('.drag-handle')
+  await handles.nth(from).dragTo(handles.nth(to))
+}
+
 /** Carica i PDF di prova attraverso l'area di caricamento. */
 export async function addFiles(page) {
   await page.getByTestId('uploader').click()

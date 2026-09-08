@@ -32,6 +32,7 @@ import zlib from 'node:zlib'
 
 import {
   ARTIFACT_NAME,
+  MAINTAINER,
   PKG_NAME,
   SECTION,
   bumpVersion,
@@ -368,6 +369,32 @@ test('l artefatto della release precedente non vale come prova', () => {
   assert.deepEqual(missingArtifacts(['pdfix_v1.0.2_x64.exe'], '1.1.0', attesi), [
     'portable: nessun file .exe per la versione 1.1.0',
   ])
+})
+
+test('il manutentore e lo stesso in tutti i punti in cui compare', () => {
+  const manifest = readJson(paths.packageJson)
+  const email = MAINTAINER.slice(MAINTAINER.indexOf('<') + 1, MAINTAINER.indexOf('>'))
+
+  assert.match(MAINTAINER, /^[^<]+ <[^@\s]+@[^@\s]+\.[^@\s]+>$/, 'forma «Nome <indirizzo>»')
+  assert.equal(manifest.author.email, email)
+  assert.equal(manifest.build.linux.maintainer, MAINTAINER)
+  for (const release of readReleaseHistory().releases) {
+    assert.equal(release.maintainer, MAINTAINER, `versione ${release.version}`)
+  }
+
+  // L'indirizzo finisce in chiaro nel pacchetto e deve poter ricevere posta:
+  // l'alias no-reply di GitHub scarta tutto quello che gli arriva, quindi come
+  // manutentore Debian non vale.
+  assert.doesNotMatch(MAINTAINER, /users\.noreply\.github\.com/)
+})
+
+test('la guardia si accorge di un manutentore divergente', () => {
+  // Il controllo vive in collectProblems: qui si verifica che sia davvero fra
+  // i problemi cercati, non che il repository sia coerente — quello lo dice il
+  // test precedente.
+  const sorgente = readFileSync(path.join(paths.root, 'scripts', 'verify-packaging-assets.js'), 'utf8')
+  assert.match(sorgente, /build\.linux\.maintainer/)
+  assert.match(sorgente, /release-history\.json: la versione/)
 })
 
 test('gli argomenti di version-bump sono interpretati correttamente', () => {

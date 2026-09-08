@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { ARTIFACT_NAME, findRelease, isEntrypoint, paths, readJson, readReleaseHistory } from './lib/release-meta.js'
+import { ARTIFACT_NAME, MAINTAINER, findRelease, isEntrypoint, paths, readJson, readReleaseHistory } from './lib/release-meta.js'
 
 /** @returns {string[]} elenco dei problemi trovati, vuoto se tutto è coerente */
 export function collectProblems() {
@@ -30,8 +30,26 @@ export function collectProblems() {
     problems.push(`build.artifactName deve essere la macro letterale ${ARTIFACT_NAME}`)
   }
 
-  if (!findRelease(readReleaseHistory(), version)) {
+  const history = readReleaseHistory()
+  if (!findRelease(history, version)) {
     problems.push(`release-history.json non ha un record per la versione ${version}`)
+  }
+
+  // Il manutentore compare in quattro punti — autore npm, campo Maintainer del
+  // .deb, costante della pipeline, storico delle release — e finisce in chiaro
+  // dentro il pacchetto: se i quattro divergono, il changelog Debian firma le
+  // versioni con un indirizzo e il control ne dichiara un altro.
+  const email = MAINTAINER.slice(MAINTAINER.indexOf('<') + 1, MAINTAINER.indexOf('>'))
+  if (packageJson.author?.email !== email) {
+    problems.push(`package.json: author.email ${packageJson.author?.email} ≠ ${email}`)
+  }
+  if (packageJson.build?.linux?.maintainer !== MAINTAINER) {
+    problems.push(`package.json: build.linux.maintainer deve essere ${MAINTAINER}`)
+  }
+  for (const release of history.releases ?? []) {
+    if (release.maintainer !== MAINTAINER) {
+      problems.push(`release-history.json: la versione ${release.version} ha un manutentore diverso`)
+    }
   }
 
   const changelog = readFileSync(paths.changelog, 'utf8')
