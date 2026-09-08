@@ -39,11 +39,14 @@ jobs:
           cache: npm
 
       # Electron ha bisogno di un server X anche per la finestra dei test.
-      - name: Display virtuale (Linux)
+      # `fakeroot`, `dpkg-dev` e `squashfs-tools` servono invece alla suite di
+      # packaging: senza di loro quei test si escludono da soli e i difetti del
+      # .deb e dello snap emergerebbero solo in fase di release.
+      - name: Display virtuale e strumenti di packaging (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y xvfb
+          sudo apt-get install --no-install-recommends -y xvfb fakeroot dpkg-dev squashfs-tools
 
       - name: Installa le dipendenze
         run: npm ci

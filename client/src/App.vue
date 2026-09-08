@@ -103,6 +103,7 @@
 
     <OperationDialog
       :operation="pendingOperation"
+      :files="paths"
       @close="pendingOperation = null"
       @confirm="confirmOperation"
     />

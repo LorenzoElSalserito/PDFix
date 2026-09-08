@@ -19,6 +19,7 @@
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isEntrypoint } from './lib/release-meta.js'
 import sharp from 'sharp'
 import pngToIco from 'png-to-ico'
 
@@ -133,7 +134,7 @@ async function main() {
   console.log(`Interfaccia: client/src/assets/app-icon.png (${RENDERER_ICON_SIZE} px)`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntrypoint(import.meta.url)) {
   main().catch((error) => {
     console.error(`Generazione icone fallita: ${error.message}`)
     process.exit(1)

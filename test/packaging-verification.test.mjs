@@ -207,7 +207,10 @@ test('il template non estratto viene riconosciuto', () => {
   }
 })
 
-test('un immagine completa non produce segnalazioni', () => {
+// Il filesystem di Windows non ha i bit di esecuzione: `chmod 0755` non li
+// scrive, quindi l'immagine sintetica risulterebbe sempre con il comando non
+// eseguibile. Il controllo resta valido dove lo snap si costruisce davvero.
+test('un immagine completa non produce segnalazioni', { skip: process.platform === 'win32' }, () => {
   const tree = buildSnapTree({ withTemplate: false })
   try {
     for (const script of ['desktop-init.sh', 'desktop-common.sh']) {

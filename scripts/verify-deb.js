@@ -15,7 +15,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import zlib from 'node:zlib'
-import { PKG_NAME, SECTION, currentVersion, paths, pickArtifact } from './lib/release-meta.js'
+import { PKG_NAME, SECTION, currentVersion, isEntrypoint, paths, pickArtifact } from './lib/release-meta.js'
 import { parseControl } from './deb-finalize.js'
 
 /**
@@ -259,7 +259,7 @@ function resolveTarget() {
   return path.join(releaseDir, candidate)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntrypoint(import.meta.url)) {
   try {
     const target = resolveTarget()
     if (!has('dpkg-deb')) throw new Error('dpkg-deb non trovato: installa dpkg-dev.')

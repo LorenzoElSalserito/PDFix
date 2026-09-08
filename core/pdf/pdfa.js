@@ -1,5 +1,5 @@
 /**
- * Applicazione del profilo PDF/A-1b a un documento pdf-lib.
+ * Applicazione di un profilo PDF/A a un documento pdf-lib.
  *
  * Vengono impostati gli elementi che lo standard richiede a livello di
  * documento: versione dell'header, identificatore di file, OutputIntent con
@@ -8,9 +8,14 @@
  * cosi' come sono: se il documento di partenza incorpora i propri font, il
  * risultato e' conforme; in caso contrario resta la non conformita' del
  * sorgente, che nessuna riscrittura dei metadati puo' correggere.
+ *
+ * Le parti dello standard differiscono su poche cose che contano qui: PDF/A-1 è
+ * definito sopra PDF 1.4 e vieta i file allegati, PDF/A-2 e PDF/A-3 stanno sopra
+ * PDF 1.7 e solo PDF/A-3 ammette allegati di qualunque tipo — è la ragione per
+ * cui la fattura elettronica usa proprio quella parte.
  */
 
-import { PDFHexString, PDFName, PDFNumber, PDFString } from 'pdf-lib'
+import { PDFHexString, PDFName, PDFNumber, PDFString } from '@cantoo/pdf-lib'
 import { createHash } from 'node:crypto'
 import { srgbIccProfile, SRGB_PROFILE_NAME } from './srgb-icc.js'
 import { buildXmpMetadata } from './metadata.js'
@@ -50,9 +55,9 @@ function attachOutputIntent(pdfDoc) {
   pdfDoc.catalog.set(PDFName.of('OutputIntents'), context.obj([outputIntent]))
 }
 
-function attachXmpMetadata(pdfDoc, { title, producer, creator, date }) {
+function attachXmpMetadata(pdfDoc, { title, producer, creator, date, part, conformance }) {
   const context = pdfDoc.context
-  const xmp = buildXmpMetadata({ title, producer, creator, date })
+  const xmp = buildXmpMetadata({ title, producer, creator, date, part, conformance })
   const metadataStream = context.stream(xmp, {
     Type: PDFName.of('Metadata'),
     Subtype: PDFName.of('XML'),
@@ -61,15 +66,32 @@ function attachXmpMetadata(pdfDoc, { title, producer, creator, date }) {
 }
 
 /**
- * @param {import('pdf-lib').PDFDocument} pdfDoc
- * @param {{title: string, producer: string, creator: string, date?: Date}} info
+ * @param {import('@cantoo/pdf-lib').PDFDocument} pdfDoc
+ * @param {{title: string, producer: string, creator: string, date?: Date, part?: number, conformance?: string}} info
  */
-export function applyPdfA1b(pdfDoc, { title, producer, creator, date = new Date() }) {
+export function applyPdfA(pdfDoc, {
+  title,
+  producer,
+  creator,
+  date = new Date(),
+  part = 1,
+  conformance = 'B',
+}) {
   attachOutputIntent(pdfDoc)
-  attachXmpMetadata(pdfDoc, { title, producer, creator, date })
+  attachXmpMetadata(pdfDoc, { title, producer, creator, date, part, conformance })
 
   const identifier = fileIdentifier(`${title}|${producer}|${date.toISOString()}`)
   pdfDoc.context.trailerInfo.ID = pdfDoc.context.obj([identifier, identifier])
 
   return pdfDoc
+}
+
+/** Versione dell'header richiesta da una parte dello standard, se diversa da 1.7. */
+export function headerVersionFor(part) {
+  return part === 1 ? PDFA1_HEADER_VERSION : undefined
+}
+
+/** Profilo storico: resta la firma usata dall'operazione di conversione. */
+export function applyPdfA1b(pdfDoc, info) {
+  return applyPdfA(pdfDoc, { ...info, part: 1, conformance: 'B' })
 }

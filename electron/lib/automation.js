@@ -21,6 +21,24 @@ export function fixtureSavePath() {
   return process.env.PDFIX_E2E_OUTPUT || null
 }
 
+/** Percorso restituito al posto della finestra "scegli un file" di un parametro. */
+export function fixtureParamFile() {
+  return process.env.PDFIX_E2E_PARAM_FILE || null
+}
+
+/**
+ * Cartella su cui risolvere i file trascinati durante i test.
+ *
+ * Il trascinamento è l'unica interazione che Playwright non può riprodurre
+ * fino in fondo: i `File` che costruisce non vengono dal sistema operativo e
+ * non hanno un percorso. Con questa variabile valorizzata, un nome senza
+ * cartella viene cercato qui — la validazione del contenuto resta quella di
+ * sempre, un nome inventato viene comunque rifiutato.
+ */
+export function fixtureDropDir() {
+  return process.env.PDFIX_E2E_DROP_DIR || null
+}
+
 /** Cartella restituita al posto della finestra "scegli cartella". */
 export function fixtureSaveDir() {
   return process.env.PDFIX_E2E_OUTPUT_DIR || null

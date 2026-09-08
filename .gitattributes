@@ -1,0 +1,19 @@
+# Fine riga uniforme su tutti i sistemi.
+#
+# Su Windows Git converte i file di testo in CRLF al checkout: la suite
+# confronta contenuti, impronte md5 e gzip deterministici, e una conversione
+# silenziosa li farebbe fallire solo su quel sistema operativo. Il repository
+# resta LF ovunque; i file binari non vengono toccati.
+* text=auto eol=lf
+
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.icns binary
+*.p12 binary
+*.pfx binary
+*.snap binary
+*.deb binary
+*.gz binary

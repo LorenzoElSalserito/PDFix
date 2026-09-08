@@ -39,12 +39,19 @@ jobs:
           node-version: '20'
           cache: npm
 
-      - name: Display virtuale
+      # Xvfb per la finestra di Electron; gli strumenti Debian e Snap perche' la
+      # suite di packaging giri davvero, invece di escludersi da sola.
+      - name: Display virtuale e strumenti di packaging
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y xvfb
+          sudo apt-get install --no-install-recommends -y xvfb fakeroot dpkg-dev squashfs-tools
 
       - run: npm ci
+
+      # La guardia di coerenza controlla anche l'output di build: senza questo
+      # passo i test del motore girerebbero su una copia senza `dist/`.
+      - name: Compila interfaccia e motore
+        run: npm run build
 
       - name: Test dell'interfaccia
         run: npm run test:unit
@@ -98,6 +105,12 @@ jobs:
 
       - name: Costruisci i pacchetti
         run: npm run ${{ matrix.dist_script }}
+
+      # Un target puo' fallire senza fermare electron-builder: il DMG di macOS
+      # dipende da hdiutil e dalla firma, e una release/ incompleta si
+      # scoprirebbe solo alla pubblicazione. Qui si scopre subito.
+      - name: Verifica che ogni formato dichiarato sia stato prodotto
+        run: npm run verify:artifacts
 
       - name: Certifica il pacchetto Debian
         if: runner.os == 'Linux'

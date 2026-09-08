@@ -38,7 +38,7 @@ export function createEngineClient({ engineEntry, memoryLimitMb, timeoutMs, fork
    * @param {{onProgress?: (progress: object) => void}} [handlers]
    * @returns {Promise<object>} busta `{ok, ...}` prodotta dal motore
    */
-  function run(request, { onProgress } = {}) {
+  function run(request, { onProgress, kind = 'run' } = {}) {
     return new Promise((resolve) => {
       const limit = memoryLimitMb()
       const child = fork(engineEntry, [], {
@@ -86,8 +86,19 @@ export function createEngineClient({ engineEntry, memoryLimitMb, timeoutMs, fork
         })
       })
 
-      child.send({ id: 1, request })
+      child.send({ id: 1, request, kind })
     })
+  }
+
+  /**
+   * Chiede al motore i parametri che dipendono dal documento scelto.
+   *
+   * Passa dallo stesso processo figlio di `run`: leggere un PDF sconosciuto è
+   * un'operazione che può fallire o consumare memoria come qualunque altra, e
+   * non deve poterlo fare dentro il processo principale.
+   */
+  function inspect(request) {
+    return run(request, { kind: 'inspect' })
   }
 
   /** Termina eventuali elaborazioni ancora attive, alla chiusura dell'app. */
@@ -95,5 +106,5 @@ export function createEngineClient({ engineEntry, memoryLimitMb, timeoutMs, fork
     for (const child of [...running]) terminate(child)
   }
 
-  return { run, dispose, get activeCount() { return running.size } }
+  return { run, inspect, dispose, get activeCount() { return running.size } }
 }

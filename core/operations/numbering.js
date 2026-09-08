@@ -2,7 +2,7 @@
  * Operazione "numbering": stampa il numero di pagina.
  */
 
-import { StandardFonts, rgb } from 'pdf-lib'
+import { StandardFonts, rgb } from '@cantoo/pdf-lib'
 import { operationDescriptor } from '../catalog.js'
 import { loadDocument, saveDocument } from '../pdf/document.js'
 import { formatPageLabel } from '../pdf/pages.js'

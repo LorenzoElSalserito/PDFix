@@ -25,6 +25,7 @@ import {
   consolidateChangelog,
   findRelease,
   flush,
+  isEntrypoint,
   paths,
   parseVersion,
   readJson,
@@ -148,7 +149,7 @@ export function clearPendingMarker() {
   if (existsSync(paths.pendingMarker)) rmSync(paths.pendingMarker)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntrypoint(import.meta.url)) {
   try {
     main(process.argv.slice(2))
   } catch (error) {

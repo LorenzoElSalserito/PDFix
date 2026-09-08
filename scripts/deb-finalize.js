@@ -39,6 +39,7 @@ import {
   SOURCE_URL,
   UPSTREAM_NAME,
   findRelease,
+  isEntrypoint,
   paths,
   readReleaseHistory,
 } from './lib/release-meta.js'
@@ -271,9 +272,20 @@ export function readModes(workDir) {
 }
 
 /** Modo atteso per una voce del pacchetto, bit speciali preservati. */
+/**
+ * Percorso relativo con separatori POSIX.
+ *
+ * Dentro un `.deb` i nomi hanno sempre la barra: `path.relative` invece usa il
+ * separatore del sistema, e su Windows i confronti con `DEBIAN/` fallirebbero
+ * in silenzio — anche solo eseguendo i test della pipeline.
+ */
+function posixRelative(base, filePath) {
+  return path.relative(base, filePath).split(path.sep).join('/')
+}
+
 export function expectedMode({ mode, type, filePath }, workDir) {
   const special = mode & 0o7000
-  const relative = path.relative(workDir, filePath)
+  const relative = posixRelative(workDir, filePath)
   if (type === 'd') return special | 0o755
   if (relative.startsWith('DEBIAN/')) {
     const name = path.basename(relative)
@@ -305,7 +317,7 @@ function walkFiles(dir, base = dir) {
     const filePath = path.join(dir, name)
     const stats = statSync(filePath)
     if (stats.isDirectory()) results.push(...walkFiles(filePath, base))
-    else if (stats.isFile()) results.push(path.relative(base, filePath))
+    else if (stats.isFile()) results.push(posixRelative(base, filePath))
   }
   return results
 }
@@ -406,7 +418,7 @@ function finalize(debPath) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntrypoint(import.meta.url)) {
   try {
     finalize(path.resolve(process.argv[2] ?? ''))
   } catch (error) {

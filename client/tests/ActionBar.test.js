@@ -61,3 +61,64 @@ describe('ActionBar', () => {
     expect(wrapper.get('[data-testid="action-convert"]').attributes('disabled')).toBeDefined()
   })
 })
+
+describe('ActionBar: gruppi', () => {
+  const tutte = (props) => mount(ActionBar, { props: { operations: OPERATIONS, documents: pdfDocuments(2), ...props } })
+
+  it('offre una scheda per ogni gruppo presente, piu una per tutte le operazioni', () => {
+    const wrapper = tutte()
+    const schede = wrapper.findAll('[data-testid^="action-group-"]')
+    expect(schede.map((scheda) => scheda.attributes('data-testid'))).toEqual([
+      'action-group-all',
+      'action-group-documento',
+      'action-group-pagine',
+      'action-group-contenuto',
+      'action-group-moduli',
+    ])
+    expect(wrapper.get('[data-testid="action-group-all"]').text()).toContain(String(OPERATIONS.length))
+    expect(wrapper.get('[data-testid="action-group-documento"]').text()).toContain('3')
+  })
+
+  it('parte da tutte le operazioni e le mostra insieme', () => {
+    const wrapper = tutte()
+    expect(wrapper.findAll('[data-testid^="action-"][data-group]')).toHaveLength(OPERATIONS.length)
+    expect(wrapper.get('[data-testid="action-group-all"]').attributes('aria-pressed')).toBe('true')
+  })
+
+  it('una scheda mostra solo le operazioni del suo gruppo', async () => {
+    const wrapper = tutte()
+    await wrapper.get('[data-testid="action-group-moduli"]').trigger('click')
+
+    expect(wrapper.findAll('[data-group]')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="action-formfill"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="action-merge"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="action-group-moduli"]').attributes('aria-pressed')).toBe('true')
+  })
+
+  it('torna a tutte se il gruppo aperto sparisce dalle funzionalita attive', async () => {
+    const wrapper = tutte()
+    await wrapper.get('[data-testid="action-group-moduli"]').trigger('click')
+
+    await wrapper.setProps({ operations: OPERATIONS.filter((operation) => operation.group !== 'moduli') })
+
+    expect(wrapper.find('[data-testid="action-group-moduli"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="action-group-all"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('[data-testid="action-merge"]').exists()).toBe(true)
+  })
+
+  it('segna le operazioni che producono sempre PDF/A', () => {
+    const wrapper = tutte()
+    const conversione = wrapper.get('[data-testid="action-convert"]')
+    expect(conversione.find('span.bg-emerald-500').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="action-merge"]').find('span.bg-emerald-500').exists()).toBe(false)
+  })
+
+  it('mette ogni pulsante nel gruppo dichiarato dal catalogo', () => {
+    const wrapper = tutte()
+    for (const operation of OPERATIONS) {
+      expect(wrapper.get(`[data-testid="action-${operation.name}"]`).attributes('data-group')).toBe(
+        operation.group,
+      )
+    }
+  })
+})

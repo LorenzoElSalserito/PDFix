@@ -44,9 +44,14 @@ function setDragging(value) {
   dragging.value = value
 }
 
+/**
+ * Il `FileList` dell'evento non sopravvive al passaggio verso il preload: il
+ * ponte di contesto lo consegna vuoto, e i file trascinati sparivano senza un
+ * errore. Si passa un array di `File`, che invece attraversa il confine.
+ */
 function onDrop(event) {
   setDragging(false)
   const dropped = event.dataTransfer?.files
-  if (dropped?.length) emit('dropped', dropped)
+  if (dropped?.length) emit('dropped', Array.from(dropped))
 }
 </script>

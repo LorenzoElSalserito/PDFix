@@ -20,12 +20,14 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import zlib from 'node:zlib'
 
 import {
@@ -35,6 +37,7 @@ import {
   bumpVersion,
   consolidateChangelog,
   formatVersion,
+  isEntrypoint,
   isoDate,
   parseEntries,
   parseVersion,
@@ -67,6 +70,8 @@ import {
 } from '../scripts/version-bump.js'
 
 import { collectProblems } from '../scripts/verify-packaging-assets.js'
+
+import { expectedArtifacts, missingArtifacts } from '../scripts/verify-release-artifacts.js'
 
 const hasTool = (command) => spawnSync('command', ['-v', command], { shell: true }).status === 0
 const canBuildDeb = hasTool('dpkg-deb') && hasTool('fakeroot')
@@ -273,16 +278,21 @@ test('una licenza non riconosciuta viene incorporata integralmente', () => {
 })
 
 test('i permessi attesi seguono la tabella BUILD_DEF', () => {
-  const work = '/work'
-  assert.equal(expectedMode({ mode: 0o775, type: 'd', filePath: '/work/opt' }, work), 0o755)
-  assert.equal(expectedMode({ mode: 0o775, type: 'f', filePath: '/work/opt/pdfix' }, work), 0o755)
-  assert.equal(expectedMode({ mode: 0o444, type: 'f', filePath: '/work/opt/dati.pak' }, work), 0o644)
-  assert.equal(expectedMode({ mode: 0o775, type: 'f', filePath: '/work/opt/libEGL.so' }, work), 0o644)
-  assert.equal(expectedMode({ mode: 0o775, type: 'f', filePath: '/work/opt/libvulkan.so.1' }, work), 0o644)
-  assert.equal(expectedMode({ mode: 0o664, type: 'f', filePath: '/work/DEBIAN/postinst' }, work), 0o755)
-  assert.equal(expectedMode({ mode: 0o664, type: 'f', filePath: '/work/DEBIAN/control' }, work), 0o644)
+  // I percorsi si compongono con `path.join`, non con letterali POSIX: dentro il
+  // pacchetto i nomi hanno la barra, ma la cartella di lavoro usa il separatore
+  // del sistema e il riconoscimento di `DEBIAN/` deve reggere entrambi.
+  const work = path.join(path.sep, 'work')
+  const file = (...parts) => path.join(work, ...parts)
+
+  assert.equal(expectedMode({ mode: 0o775, type: 'd', filePath: file('opt') }, work), 0o755)
+  assert.equal(expectedMode({ mode: 0o775, type: 'f', filePath: file('opt', 'pdfix') }, work), 0o755)
+  assert.equal(expectedMode({ mode: 0o444, type: 'f', filePath: file('opt', 'dati.pak') }, work), 0o644)
+  assert.equal(expectedMode({ mode: 0o775, type: 'f', filePath: file('opt', 'libEGL.so') }, work), 0o644)
+  assert.equal(expectedMode({ mode: 0o775, type: 'f', filePath: file('opt', 'libvulkan.so.1') }, work), 0o644)
+  assert.equal(expectedMode({ mode: 0o664, type: 'f', filePath: file('DEBIAN', 'postinst') }, work), 0o755)
+  assert.equal(expectedMode({ mode: 0o664, type: 'f', filePath: file('DEBIAN', 'control') }, work), 0o644)
   assert.equal(
-    expectedMode({ mode: 0o4755, type: 'f', filePath: '/work/opt/chrome-sandbox' }, work),
+    expectedMode({ mode: 0o4755, type: 'f', filePath: file('opt', 'chrome-sandbox') }, work),
     0o4755,
     'il bit setuid viene preservato',
   )
@@ -292,6 +302,72 @@ test('il nome degli artefatti resta una macro', () => {
   assert.equal(readJson(paths.packageJson).build.artifactName, ARTIFACT_NAME)
   assert.match(ARTIFACT_NAME, /\$\{version\}/)
   assert.match(ARTIFACT_NAME, /\$\{ext\}/)
+})
+
+test('la build Windows e portabile: si esegue, non si installa', () => {
+  const build = readJson(paths.packageJson).build
+  const targets = build.win.target.map((entry) => (typeof entry === 'string' ? entry : entry.target))
+
+  assert.deepEqual(targets, ['portable'])
+  assert.equal(build.nsis, undefined, 'senza installer non deve restare la sua configurazione')
+  // Un eseguibile portabile che chiede i privilegi di amministratore non e'
+  // portabile: si apre con l'utente corrente.
+  assert.equal(build.portable.requestExecutionLevel, 'user')
+})
+
+test('la build macOS dichiara un DMG per Intel e per Apple Silicon', () => {
+  const mac = readJson(paths.packageJson).build.mac
+  const dmg = mac.target.find((entry) => entry.target === 'dmg')
+
+  assert.ok(dmg, 'il DMG e il formato con cui macOS distribuisce l applicazione')
+  assert.deepEqual(dmg.arch, ['x64', 'arm64'])
+  // Senza certificato la firma fallirebbe e con essa il DMG: in CI si dichiara
+  // esplicitamente che l applicazione non viene firmata.
+  assert.equal(mac.identity, null)
+})
+
+test('le attese sugli artefatti si leggono dai target del manifesto', () => {
+  const manifest = readJson(paths.packageJson)
+
+  assert.deepEqual(
+    expectedArtifacts(manifest, 'darwin').map(({ extension, arches }) => [extension, arches]),
+    [['.dmg', ['x64', 'arm64']], ['.zip', ['x64', 'arm64']]],
+  )
+  assert.deepEqual(
+    expectedArtifacts(manifest, 'win32').map(({ extension }) => extension),
+    ['.exe'],
+  )
+  assert.deepEqual(
+    expectedArtifacts(manifest, 'linux').map(({ extension }) => extension),
+    ['.deb', '.AppImage', '.snap'],
+  )
+})
+
+test('un formato dichiarato ma non prodotto viene segnalato', () => {
+  const attesi = expectedArtifacts(readJson(paths.packageJson), 'darwin')
+  const soloZip = ['pdfix_v1.1.0_x64.zip', 'pdfix_v1.1.0_arm64.zip']
+
+  const problemi = missingArtifacts(soloZip, '1.1.0', attesi)
+  assert.equal(problemi.length, 1)
+  assert.match(problemi[0], /dmg: nessun file \.dmg/)
+})
+
+test('un DMG per una sola architettura non basta', () => {
+  const attesi = expectedArtifacts(readJson(paths.packageJson), 'darwin')
+  const nomi = ['pdfix_v1.1.0_arm64.dmg', 'pdfix_v1.1.0_x64.zip', 'pdfix_v1.1.0_arm64.zip']
+
+  const problemi = missingArtifacts(nomi, '1.1.0', attesi)
+  assert.equal(problemi.length, 1)
+  assert.match(problemi[0], /manca l'artefatto x64/)
+})
+
+test('l artefatto della release precedente non vale come prova', () => {
+  const attesi = expectedArtifacts(readJson(paths.packageJson), 'win32')
+
+  assert.deepEqual(missingArtifacts(['pdfix_v1.1.0_x64.exe'], '1.1.0', attesi), [])
+  assert.deepEqual(missingArtifacts(['pdfix_v1.0.2_x64.exe'], '1.1.0', attesi), [
+    'portable: nessun file .exe per la versione 1.1.0',
+  ])
 })
 
 test('gli argomenti di version-bump sono interpretati correttamente', () => {
@@ -336,8 +412,49 @@ test('la propagazione della versione tocca tutti i riferimenti', () => {
 // ====================================================== integrazione =========
 
 test('la guardia di coerenza non segnala nulla sul repository reale', () => {
-  const problems = collectProblems()
+  // La suite gira anche su una copia appena clonata, dove `dist/` non esiste
+  // ancora: li' la guardia segnala a ragione la build assente, e quel segnale
+  // non e' un difetto del repository. Si verifica tutto il resto, cioe' la
+  // coerenza fra package.json, lock, changelog, storico e icone.
+  const built = existsSync(paths.rendererIndex) && existsSync(paths.engineBundle)
+  const problems = collectProblems().filter((problem) => built || !problem.includes('compilat'))
   assert.deepEqual(problems, [], problems.join('\n'))
+})
+
+test('la guardia segnala la build assente quando manca davvero', () => {
+  const problems = collectProblems()
+  const built = existsSync(paths.rendererIndex) && existsSync(paths.engineBundle)
+  const reported = problems.filter((problem) => problem.includes('compilat'))
+  assert.equal(reported.length, built ? 0 : 2, problems.join('\n'))
+})
+
+test('isEntrypoint riconosce lo script anche con spazi nel percorso', () => {
+  const originale = process.argv[1]
+  try {
+    // Il percorso non e' POSIX-pulito: con la concatenazione `file://` + percorso
+    // il confronto falliva e lo script veniva importato senza eseguire nulla —
+    // lo stesso motivo per cui su Windows (`D:\\repo\\script.js`) non partiva mai.
+    const finto = path.join(tmpdir(), 'cartella con spazi', 'script.js')
+    process.argv[1] = finto
+    assert.equal(isEntrypoint(pathToFileURL(finto).href), true)
+    assert.equal(isEntrypoint(`file://${finto}`), false, 'la forma concatenata non deve combaciare')
+    assert.equal(isEntrypoint('file:///altro/script.js'), false)
+  } finally {
+    process.argv[1] = originale
+  }
+})
+
+test('nessuno script ricostruisce l URL del modulo a mano', () => {
+  const dir = path.join(paths.root, 'scripts')
+  const files = readdirSync(dir).filter((name) => name.endsWith('.js') || name.endsWith('.cjs'))
+  for (const file of files) {
+    const source = readFileSync(path.join(dir, file), 'utf8')
+    assert.doesNotMatch(
+      source,
+      /file:\/\/\$\{process\.argv\[1\]\}/,
+      `${file}: usa isEntrypoint(import.meta.url), non la concatenazione`,
+    )
+  }
 })
 
 test('version-bump --dry-run non scrive nulla', () => {

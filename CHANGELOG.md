@@ -11,6 +11,64 @@ scrive a mano: `npm run dist` la consolida in una sezione datata, aggiorna
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-08
+
+### Added
+- **Firma su foglio**: l'immagine della propria firma — un PNG o un JPG — appoggiata sul documento. La finestra mostra l'anteprima della pagina vera, disegnata in locale, e la firma si colloca trascinandola: la maniglia la ridimensiona, le frecce la spostano di poco, il selettore cambia pagina. Quello che si vede nell'anteprima è quello che il documento riceve, perché la posizione viaggia in frazioni della pagina e non in pixel dello schermo.
+- Le pagine ruotate sono gestite: su un foglio con `/Rotate` la firma resta dritta e dentro il margine invece di comparire coricata.
+- Test end-to-end mirati: la firma trascinata, spostata con le frecce, ridimensionata dalla maniglia e messa su una pagina diversa viene ritrovata nel PDF prodotto rileggendo le coordinate scritte nel file, con la tolleranza di due pixel dell'anteprima.
+
+### Changed
+- La firma digitale con certificato PKCS#12 non è più fra i comandi: richiede un certificato valido e una spiegazione che l'interfaccia non dà ancora. Il motore e i suoi test restano al loro posto, la funzione torna visibile togliendo un flag nel catalogo.
+- I parametri strutturati attraversano il confine IPC come dati semplici: la reattività di Vue avvolge anche gli oggetti annidati e la chiamata sarebbe fallita con «An object could not be cloned».
+
+## [1.2.0] - 2026-09-08
+
+### Added
+- La pulsantiera delle funzionalità è ora divisa per gruppi — Documento, Pagine, Impaginazione, Contenuto, Moduli, Sicurezza — con schede che ne mostrano il numero e filtrano i comandi. Ventisei pulsanti affiancati erano un muro: il raggruppamento vive nel catalogo, accanto ai descrittori, così una funzionalità nuova nasce già al suo posto.
+- Ogni comando è una scheda con il simbolo del suo gruppo; un punto verde segnala le operazioni che producono sempre un PDF/A, e l'interruttore PDF/A è diventato una pastiglia accanto alle schede.
+- Test end-to-end del trascinamento: file rilasciati nell'area di caricamento, immagini, doppioni, file rifiutati, evidenziazione dell'area e riordino dell'elenco con tre documenti, compresa la verifica che si trascini solo dalla maniglia.
+- Test end-to-end della pulsantiera guidati dal catalogo: ogni operazione ha un pulsante nel gruppo che dichiara, ogni pulsante apre la sua finestra o avvia davvero l'elaborazione, le schede filtrano, Esc chiude senza eseguire nulla.
+- Le voci degli elenchi a discesa dei parametri sono tradotte, e un test verifica la copertura delle traduzioni sull'intero catalogo: etichette, descrizioni, parametri, aiuti, voci degli elenchi, gruppi, campi e sezioni delle impostazioni. Una chiave mancante ora fa fallire la suite invece di comparire in italiano in mezzo all'inglese.
+
+### Fixed
+- **Il trascinamento dei file non caricava nulla.** Il `FileList` dell'evento di rilascio attraversava il ponte di contesto di Electron come oggetto vuoto: il processo principale riceveva un elenco senza percorsi e l'applicazione non aggiungeva né file né errori. Il componente passa ora un array di `File`, che il ponte consegna intatto.
+- La sezione «Funzionalità» delle impostazioni restava in italiano con l'interfaccia in inglese: mancava la sua chiave di traduzione.
+
+### Changed
+- La build Windows è **portabile**: `pdfix_vX.Y.Z_x64.exe` si esegue senza installazione e senza privilegi di amministratore, coerente con un'applicazione che non lascia nulla sul sistema. L'installer NSIS non viene più prodotto.
+- Il pacchetto macOS non viene firmato in modo implicito: l'identità è dichiarata nulla nel manifesto. Senza certificato la firma falliva e con essa la costruzione del DMG.
+- La pipeline verifica gli artefatti appena costruiti (`npm run verify:artifacts`): per ogni target dichiarato nel manifesto deve esistere il file della versione in corso, con entrambe le architetture dove il manifesto ne dichiara due. Un DMG che non si costruisce ferma la release invece di lasciare una cartella incompleta.
+- Integrazione continua: sui runner Linux vengono installati anche `fakeroot`, `dpkg-dev` e `squashfs-tools`, così i test del pacchetto Debian e dello snap girano davvero invece di escludersi da soli — erano proprio quei controlli a mancare quando la release falliva.
+- `.gitattributes` fissa i fine riga a LF al checkout: su Windows la conversione automatica in CRLF avrebbe fatto fallire i confronti di contenuto e le impronte del pacchetto solo su quel sistema.
+
+## [1.1.0] - 2026-08-31
+
+### Added
+- **Più pagine per foglio**: due o quattro pagine su ogni foglio, con margine regolabile e cornice di taglio facoltativa.
+- **Libretto**: imposizione a sella per la rilegatura a punto metallico, con le facciate bianche aggiunte quando le pagine non sono un multiplo di quattro.
+- **Uniforma formato**: porta un documento con pagine di misure diverse a un unico formato (A3, A4, A5, Letter o quello della prima pagina), scalando il contenuto senza deformarlo.
+- **Ritaglia margini**: restringe l'area visibile delle pagine scelte. Il contenuto tagliato resta nel file: serve a inquadrare una scansione, non a nascondere informazioni, e la descrizione lo dice.
+- **Filigrana con immagine**: sovrappone un logo o un timbro PNG o JPG alle pagine scelte, con posizione, larghezza e opacità regolabili.
+- **Numerazione Bates**: numera un fascicolo di più documenti con una sequenza unica e continua, con prefisso, suffisso e cifre fisse, come richiede l'uso legale.
+- **Moduli PDF**: elenco dei campi compilabili in un file JSON, compilazione guidata — la finestra chiede un valore per ogni campo che il documento ha davvero — e blocco dei campi compilati.
+- Le operazioni possono chiedere un file come parametro (l'immagine di un timbro) e possono produrre un file che non è un PDF: la finestra di salvataggio segue l'operazione.
+- **Allega un file**: incorpora un file di qualunque tipo nel documento e produce un PDF/A-3b, la parte dello standard che l'archiviazione a norma richiede per un documento accompagnato dai propri dati — la fattura elettronica con il suo XML, per esempio.
+- **Crea segnalibri**: costruisce l'indice navigabile del documento da un elenco di pagine e titoli scritto nella finestra.
+- **Dividi per segnalibro**: un file per ogni segnalibro di primo livello, intitolato come il segnalibro invece che numerato.
+- **Proteggi con password**: cifratura AES-256 con password di apertura e del proprietario, e permessi separati per stampa, copia, modifica, annotazioni e compilazione dei moduli.
+- **Togli la protezione**: produce una copia libera a partire dalla password con cui è stata applicata.
+- **Firma digitalmente**: firma PAdES con un certificato PKCS#12 dell'utente, senza marca temporale e senza alcuna connessione.
+- Il profilo PDF/A ora accetta la parte dello standard: la conversione resta PDF/A-1b, gli allegati richiedono e producono PDF/A-3b.
+
+### Changed
+- Il motore usa `@cantoo/pdf-lib` al posto di `pdf-lib`: stessa API, con in più la cifratura. Il bundle del motore passa da 0,95 MB a 2,02 MB, per la maggior parte dovuti a `node-forge`, necessario alla firma digitale.
+
+### Fixed
+- Gli script della pipeline riconoscono di essere stati lanciati da riga di comando anche su Windows e nei percorsi con spazi: il confronto fatto concatenando `file://` al percorso non combaciava mai, così `version-bump`, `deb-finalize` e le altre utilità venivano importate senza eseguire nulla e l'integrazione continua falliva su Windows.
+- I nomi dei file dentro il pacchetto Debian sono sempre in forma POSIX: il confronto con `DEBIAN/` usava il separatore del sistema e sbagliava i permessi attesi fuori da Linux.
+- La guardia di coerenza non fa più fallire i test del motore su una copia appena clonata: la build assente resta un problema segnalato, ma non viene confusa con un'incoerenza del repository. Il flusso di release compila prima di eseguire le suite.
+
 ## [1.0.2] - 2026-08-31
 
 ### Added

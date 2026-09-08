@@ -21,7 +21,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync,
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { load } from 'js-yaml'
-import { pickArtifact } from './lib/release-meta.js'
+import { isEntrypoint, pickArtifact } from './lib/release-meta.js'
 
 /** Compressione richiesta da snapd per le immagini squashfs. */
 const COMPRESSION = 'xz'
@@ -192,7 +192,7 @@ function resolveTarget() {
   return path.join(releaseDir, candidate)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntrypoint(import.meta.url)) {
   try {
     finalize(resolveTarget())
   } catch (error) {

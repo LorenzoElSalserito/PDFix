@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { ARTIFACT_NAME, findRelease, paths, readJson, readReleaseHistory } from './lib/release-meta.js'
+import { ARTIFACT_NAME, findRelease, isEntrypoint, paths, readJson, readReleaseHistory } from './lib/release-meta.js'
 
 /** @returns {string[]} elenco dei problemi trovati, vuoto se tutto è coerente */
 export function collectProblems() {
@@ -53,7 +53,7 @@ export function collectProblems() {
   return problems
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntrypoint(import.meta.url)) {
   const problems = collectProblems()
   if (problems.length > 0) {
     console.error('verify:packaging ha trovato incoerenze:')

@@ -7,7 +7,7 @@
  * entrambe le cose applica prima la filigrana e poi la conversione.
  */
 
-import { StandardFonts, degrees, rgb } from 'pdf-lib'
+import { StandardFonts, degrees, rgb } from '@cantoo/pdf-lib'
 import { operationDescriptor } from '../catalog.js'
 import { loadDocument, saveDocument } from '../pdf/document.js'
 

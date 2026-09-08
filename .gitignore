@@ -47,3 +47,6 @@ npm-debug.log*
 
 # Claude Code
 .claude/
+
+# Copia di sicurezza dei pacchetti di una release precedente
+release-backup/

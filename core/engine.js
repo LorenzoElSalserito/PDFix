@@ -12,17 +12,40 @@
 
 import { access, constants } from 'node:fs/promises'
 import path from 'node:path'
-import { defaultParams, inputExtensionsOf, isParamVisible, maxFilesOf, outputModeOf } from './catalog.js'
+import {
+  defaultParams,
+  inputExtensionsOf,
+  isParamVisible,
+  maxFilesOf,
+  outputExtensionsOf,
+  outputModeOf,
+} from './catalog.js'
 import mergeOperation from './operations/merge.js'
 import convertOperation from './operations/convert.js'
 import extractOperation from './operations/extract.js'
 import removeOperation from './operations/remove.js'
 import rotateOperation from './operations/rotate.js'
 import splitOperation from './operations/split.js'
+import nupOperation from './operations/nup.js'
+import bookletOperation from './operations/booklet.js'
+import resizeOperation from './operations/resize.js'
+import cropOperation from './operations/crop.js'
 import imagesOperation from './operations/images.js'
 import watermarkOperation from './operations/watermark.js'
+import stampOperation from './operations/stamp.js'
+import batesOperation from './operations/bates.js'
+import formFieldsOperation from './operations/formfields.js'
+import formFillOperation from './operations/formfill.js'
+import formFlattenOperation from './operations/formflatten.js'
 import numberingOperation from './operations/numbering.js'
+import attachOperation from './operations/attach.js'
+import bookmarksOperation from './operations/bookmarks.js'
+import splitBookmarksOperation from './operations/splitbookmarks.js'
 import metadataOperation from './operations/metadata.js'
+import protectOperation from './operations/protect.js'
+import unprotectOperation from './operations/unprotect.js'
+import signOperation from './operations/sign.js'
+import signatureOperation from './operations/signature.js'
 import optimizeOperation from './operations/optimize.js'
 import diagnosticsOperation from './operations/diagnostics.js'
 
@@ -34,10 +57,26 @@ export const builtinOperations = [
   removeOperation,
   rotateOperation,
   splitOperation,
+  nupOperation,
+  bookletOperation,
+  resizeOperation,
+  cropOperation,
   imagesOperation,
   watermarkOperation,
+  stampOperation,
   numberingOperation,
+  batesOperation,
+  formFieldsOperation,
+  formFillOperation,
+  formFlattenOperation,
+  attachOperation,
+  bookmarksOperation,
+  splitBookmarksOperation,
   metadataOperation,
+  protectOperation,
+  unprotectOperation,
+  signOperation,
+  signatureOperation,
   optimizeOperation,
   diagnosticsOperation,
 ]
@@ -90,6 +129,44 @@ export const registry = createRegistry()
  *
  * @returns {object} parametri normalizzati
  */
+/** Frazione riportata nell'intervallo consentito. */
+function clampFraction(value, { min = 0, max = 1, fallback }) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return fallback
+  return Math.min(max, Math.max(min, numeric))
+}
+
+/**
+ * Piazzamento di un elemento sulla pagina, in frazioni della pagina stessa.
+ *
+ * Le frazioni non dipendono dal formato del foglio: la stessa firma finisce
+ * nello stesso punto su un A4 e su una lettera, e l'anteprima mostrata
+ * all'utente e il documento prodotto restano d'accordo.
+ *
+ * @param {{page?: number, x?: number, y?: number, width?: number}} value
+ * @param {object} param descrittore, per il messaggio d'errore
+ */
+export function normalizePlacement(value, param = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`«${param.label ?? 'Posizione'}» non è un piazzamento valido.`)
+  }
+  const fallback = param.default ?? {}
+
+  const page = Math.trunc(Number(value.page ?? fallback.page ?? 1))
+  if (!Number.isFinite(page) || page < 1) {
+    throw new Error(`«${param.label ?? 'Posizione'}»: numero di pagina non valido.`)
+  }
+
+  const width = clampFraction(value.width, { min: 0.01, max: 1, fallback: fallback.width ?? 0.3 })
+
+  return {
+    page,
+    x: clampFraction(value.x, { fallback: fallback.x ?? 0 }),
+    y: clampFraction(value.y, { fallback: fallback.y ?? 0 }),
+    width,
+  }
+}
+
 export function resolveParams(descriptor, provided = {}) {
   const values = { ...defaultParams(descriptor), ...(provided ?? {}) }
 
@@ -118,6 +195,30 @@ export function resolveParams(descriptor, provided = {}) {
 
     if (param.type === 'boolean') {
       values[param.key] = Boolean(value)
+      continue
+    }
+
+    // Un piazzamento arriva dall'anteprima come frazioni della pagina: qui
+    // viene riportato dentro i limiti invece di essere rifiutato, perche' un
+    // trascinamento che esce di un capello dal bordo e' un gesto, non un
+    // errore. Restano un errore la pagina inesistente e la larghezza nulla.
+    if (param.type === 'placement') {
+      values[param.key] = normalizePlacement(value, param)
+      continue
+    }
+
+    if (param.type === 'file') {
+      const filePath = value === undefined || value === null ? '' : String(value).trim()
+      if (filePath === '') {
+        if (param.required) throw new Error(`«${param.label}» è obbligatorio: scegli un file.`)
+        values[param.key] = ''
+        continue
+      }
+      const accepted = param.accept ?? []
+      if (accepted.length > 0 && !accepted.includes(path.extname(filePath).toLowerCase())) {
+        throw new Error(`«${param.label}» accetta solo file ${accepted.join(', ')}.`)
+      }
+      values[param.key] = filePath
       continue
     }
 
@@ -152,6 +253,18 @@ export async function validateRequest(request, activeRegistry = registry) {
 
   const params = resolveParams(operation, request?.params)
 
+  // I file scelti come parametro (un logo, un allegato) non stanno nell'elenco
+  // dei documenti: la leggibilità va verificata lo stesso, e qui, non dentro
+  // l'operazione.
+  for (const param of operation.params ?? []) {
+    if (param.type !== 'file' || !isParamVisible(param, params)) continue
+    const filePath = params[param.key]
+    if (!filePath) continue
+    await access(filePath, constants.R_OK).catch(() => {
+      throw new Error(`File non leggibile: ${filePath}`)
+    })
+  }
+
   if (operation.minFiles > 0) {
     const accepted = inputExtensionsOf(operation)
     for (const file of files) {
@@ -174,13 +287,45 @@ export async function validateRequest(request, activeRegistry = registry) {
       if (typeof request.output !== 'string' || request.output.trim() === '') {
         throw new Error('Percorso di destinazione mancante.')
       }
-      if (path.extname(request.output).toLowerCase() !== '.pdf') {
-        throw new Error('Il file di destinazione deve avere estensione .pdf')
+      const accepted = outputExtensionsOf(operation)
+      if (!accepted.includes(path.extname(request.output).toLowerCase())) {
+        throw new Error(`Il file di destinazione deve avere estensione ${accepted.join(' o ')}`)
       }
     }
   }
 
   return { operation, params }
+}
+
+/**
+ * Chiede a un'operazione quali parametri servono per il documento scelto.
+ *
+ * Alcune operazioni non possono dichiarare i propri parametri nel catalogo:
+ * compilare un modulo richiede un campo per ogni casella del PDF, che si sa
+ * solo dopo aver aperto quel PDF. La forma restituita è la stessa dei parametri
+ * del catalogo, così l'interfaccia li disegna senza sapere da dove vengono.
+ *
+ * @returns {Promise<{ok: boolean, params?: object[], error?: string}>}
+ */
+export async function inspectRequest(request, { registry: activeRegistry = registry } = {}) {
+  try {
+    const operation = activeRegistry.get(request?.operation)
+    if (typeof operation.inspect !== 'function') {
+      throw new Error(`«${operation.label}» non ha parametri da leggere dal documento.`)
+    }
+    const files = Array.isArray(request?.files) ? request.files : []
+    if (files.length < operation.minFiles) {
+      throw new Error(`«${operation.label}» richiede almeno ${operation.minFiles} file.`)
+    }
+    for (const file of files) {
+      await access(file, constants.R_OK).catch(() => {
+        throw new Error(`File non leggibile: ${file}`)
+      })
+    }
+    return { ok: true, params: await operation.inspect({ files }) }
+  } catch (error) {
+    return { ok: false, error: error?.message || 'Impossibile leggere i parametri dal documento.' }
+  }
 }
 
 /**

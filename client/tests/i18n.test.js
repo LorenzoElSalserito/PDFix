@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { LANGUAGES, createTranslator, dictionaries, resolveLanguage } from '../src/i18n/index.js'
+import { OPERATIONS, OPERATION_GROUPS } from '../../core/catalog.js'
+import { SETTINGS_FIELDS, SETTINGS_SECTIONS } from '../../electron/lib/settings-schema.js'
+import { GROUP_ICONS, GROUP_ORDER } from '../src/lib/groups.js'
 import { useI18n } from '../src/composables/useI18n.js'
 import InfoDialog from '../src/components/InfoDialog.vue'
 
@@ -99,5 +102,94 @@ describe('InfoDialog', () => {
     setLanguage('it')
     const italiano = mount(InfoDialog, { props: { open: true, info } })
     expect(italiano.get('[data-testid="donate"]').text()).toBe('Donazioni')
+  })
+})
+
+describe('copertura delle etichette', () => {
+  const lingue = Object.entries(dictionaries)
+  const presente = (chiave) =>
+    lingue.filter(([, dizionario]) => !Object.hasOwn(dizionario, chiave)).map(([lingua]) => lingua)
+
+  /** Chiave specifica dell'operazione oppure chiave comune a più operazioni. */
+  const presenteConFallback = (specifica, comune) =>
+    lingue
+      .filter(
+        ([, dizionario]) => !Object.hasOwn(dizionario, specifica) && !Object.hasOwn(dizionario, comune),
+      )
+      .map(([lingua]) => lingua)
+
+  const visibili = OPERATIONS.filter((operazione) => !operazione.hidden)
+
+  it('traduce nome e descrizione di ogni operazione del catalogo', () => {
+    for (const operazione of visibili) {
+      expect(presente(`operations.${operazione.name}.label`), operazione.name).toEqual([])
+      expect(presente(`operations.${operazione.name}.description`), operazione.name).toEqual([])
+    }
+  })
+
+  it('traduce ogni parametro chiesto all utente', () => {
+    for (const operazione of visibili) {
+      for (const parametro of operazione.params ?? []) {
+        const dove = `${operazione.name}.${parametro.key}`
+        expect(
+          presenteConFallback(
+            `params.${operazione.name}.${parametro.key}.label`,
+            `params.${parametro.key}.label`,
+          ),
+          dove,
+        ).toEqual([])
+        if (parametro.help) {
+          expect(
+            presenteConFallback(
+              `params.${operazione.name}.${parametro.key}.help`,
+              `params.${parametro.key}.help`,
+            ),
+            `${dove} (aiuto)`,
+          ).toEqual([])
+        }
+      }
+    }
+  })
+
+  it('traduce ogni voce degli elenchi a discesa', () => {
+    for (const operazione of visibili) {
+      for (const parametro of operazione.params ?? []) {
+        for (const voce of parametro.options ?? []) {
+          expect(
+            presenteConFallback(
+              `params.${operazione.name}.${parametro.key}.options.${voce.value}`,
+              `params.${parametro.key}.options.${voce.value}`,
+            ),
+            `${operazione.name}.${parametro.key}.${voce.value}`,
+          ).toEqual([])
+        }
+      }
+    }
+  })
+
+  it('traduce i gruppi della pulsantiera', () => {
+    expect(presente('groups.all')).toEqual([])
+    for (const gruppo of OPERATION_GROUPS) expect(presente(`groups.${gruppo.id}`), gruppo.id).toEqual([])
+  })
+
+  it('rispecchia nel renderer l ordine dei gruppi del catalogo', () => {
+    expect(GROUP_ORDER).toEqual(OPERATION_GROUPS.map((gruppo) => gruppo.id))
+    expect(Object.keys(GROUP_ICONS).sort()).toEqual([...GROUP_ORDER].sort())
+    for (const operazione of OPERATIONS.filter((candidata) => !candidata.hidden)) {
+      expect(GROUP_ORDER, operazione.name).toContain(operazione.group)
+    }
+  })
+
+  it('traduce ogni campo e ogni sezione delle impostazioni', () => {
+    for (const campo of SETTINGS_FIELDS) {
+      expect(presente(`settingsFields.${campo.key}.label`), campo.key).toEqual([])
+      if (campo.help) expect(presente(`settingsFields.${campo.key}.help`), campo.key).toEqual([])
+    }
+    for (const sezione of SETTINGS_SECTIONS) expect(presente(`sections.${sezione.id}`), sezione.id).toEqual([])
+  })
+
+  it('traduce le voci del tema, l unico elenco delle impostazioni con testo proprio', () => {
+    const tema = SETTINGS_FIELDS.find((campo) => campo.key === 'theme')
+    for (const voce of tema.options) expect(presente(`themes.${voce.value}`), String(voce.value)).toEqual([])
   })
 })

@@ -26,11 +26,42 @@ Available for **Windows**, **macOS** (Intel and Apple Silicon) and **Linux**
 | **Delete pages** | Removes the pages you list and keeps everything else. |
 | **Rotate pages** | Turns selected pages by 90°, 180° or 270°. |
 | **Split PDF** | Produces one file per page, or one file per range, into a folder you pick. |
+| **Pages per sheet** | Puts two or four pages on every sheet, so printing uses less paper. |
+| **Booklet** | Imposes the document for saddle stitching: print double-sided on the short edge, fold in half. |
+| **Uniform page size** | Brings mixed A4, A5 and scan sizes to one format, scaled and centred, never distorted. |
+| **Trim margins** | Narrows the visible area of the pages — handy on crooked scans and black borders. |
 | **Images to PDF** | Turns JPG and PNG files into a document, one image per page, at original size or fitted to A4. |
 | **Watermark** | Lays a diagonal text over every page — size, opacity and angle are yours to set. |
+| **Image watermark** | Places your logo or stamp over the pages you choose, at the position, size and opacity you set. |
 | **Page numbers** | Prints page numbers in any of six positions, optionally as “3 / 12”. |
+| **Bates numbering** | Numbers a whole bundle with one continuous sequence that carries on from file to file, as legal work requires. |
+| **Read form fields** | Lists the fillable fields of a form and saves them as a JSON file. |
+| **Fill in the form** | Asks for a value for every field the document actually has, then writes them in. |
+| **Lock the form** | Turns filled fields into fixed content: the document looks the same and can no longer be edited. |
 | **Edit metadata** | Sets title, author, subject and keywords. |
+| **Attach a file** | Embeds a file — an XML invoice, a spreadsheet — and writes the result as PDF/A-3b, the format compliant archiving asks for. |
+| **Create bookmarks** | Builds the navigable outline from a list of pages and titles. |
+| **Split at bookmarks** | One file per top-level bookmark, each named after the bookmark. |
+| **Protect with a password** | Encrypts the document with AES-256 and sets what a reader may print, copy or change. |
+| **Remove the protection** | Produces an unencrypted copy, given the password. |
+| **Signature on the page** | Places your scanned signature — a PNG or a JPG — on the page: drag it onto the live preview of the document, resize it, pick the page. |
 | **Optimise** | Repacks the document to make it smaller, without touching the pages. |
+
+**Trim margins is framing, not redaction.** The content outside the visible area
+stays in the file and can still be extracted — use it to tidy a scan, never to
+hide anything.
+
+**A password you forget cannot be recovered.** PDFix encrypts with AES-256 and
+keeps nothing: without the password the document is gone. Write it down before
+you close the dialog.
+
+**A signature on the page is not a digital signature.** It is the image of your
+handwriting, placed where you would sign on paper: it proves nothing
+cryptographically, and any reader can see it is a picture. Certificate-based
+PAdES signing is not available in this version.
+
+**The preview never leaves the computer.** The page you drag the signature onto
+is rendered locally, in the application window, like every other operation.
 
 The PDF/A switch also applies to merging: combine several documents and get a
 PDF/A-1b file straight away.
@@ -48,7 +79,7 @@ PDF/A-1b file straight away.
 
 | System | File | How |
 |---|---|---|
-| Windows | `pdfix_vX.Y.Z_x64.exe` | Run the installer; you can change the install folder. |
+| Windows | `pdfix_vX.Y.Z_x64.exe` | Portable: run it, no installation. Nothing is written outside the app folder and `%TEMP%`. |
 | macOS | `pdfix_vX.Y.Z_arm64.dmg` / `_x64.dmg` | Open the disk image and drag PDFix into Applications. |
 | Debian / Ubuntu | `pdfix_vX.Y.Z_amd64.deb` | `sudo apt install ./pdfix_vX.Y.Z_amd64.deb` |
 | Snap | `pdfix_vX.Y.Z_amd64.snap` | `sudo snap install --dangerous ./pdfix_vX.Y.Z_amd64.snap` |
@@ -137,7 +168,7 @@ Requirements: Node.js 20.19+ and npm 9+. Packaging for Linux additionally uses
 ```bash
 npm run dist         # packages for the current platform
 npm run dist:linux   # .deb + AppImage + Snap
-npm run dist:win     # Windows installer
+npm run dist:win     # Windows portable executable
 npm run dist:mac     # macOS disk image (macOS only)
 ```
 

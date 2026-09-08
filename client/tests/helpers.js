@@ -83,6 +83,7 @@ export const SETTINGS_SNAPSHOT = {
 export const OPERATIONS = [
   {
     name: 'extract',
+    group: 'pagine',
     label: 'Estrai pagine',
     description: 'estrae',
     minFiles: 1,
@@ -104,6 +105,7 @@ export const OPERATIONS = [
   },
   {
     name: 'images',
+    group: 'documento',
     label: 'Immagini in PDF',
     description: 'converte immagini',
     minFiles: 1,
@@ -136,7 +138,61 @@ export const OPERATIONS = [
     ],
   },
   {
+    name: 'stamp',
+    group: 'contenuto',
+    label: 'Filigrana con immagine',
+    description: 'timbra',
+    minFiles: 1,
+    maxFiles: 1,
+    supportsPdfA: false,
+    forcesPdfA: false,
+    defaultFileName: 'documento_timbrato.pdf',
+    params: [
+      {
+        key: 'image',
+        type: 'file',
+        label: 'Immagine',
+        accept: ['.png', '.jpg'],
+        default: '',
+        required: true,
+      },
+      { key: 'scala', type: 'number', label: 'Larghezza %', default: 30, min: 5, max: 100, step: 5 },
+    ],
+  },
+  {
+    name: 'formfill',
+    group: 'moduli',
+    label: 'Compila il modulo',
+    description: 'compila',
+    minFiles: 1,
+    maxFiles: 1,
+    supportsPdfA: false,
+    forcesPdfA: false,
+    defaultFileName: 'modulo_compilato.pdf',
+    inspect: true,
+    params: [
+      { key: 'appiattisci', type: 'boolean', label: 'Blocca i campi', default: false },
+    ],
+  },
+  {
+    name: 'signature',
+    group: 'contenuto',
+    label: 'Firma su foglio',
+    description: 'firma il foglio',
+    minFiles: 1,
+    maxFiles: 1,
+    supportsPdfA: false,
+    forcesPdfA: false,
+    defaultFileName: 'documento_firmato.pdf',
+    params: [
+      { key: 'image', type: 'file', label: 'Immagine della firma', accept: ['.png', '.jpg'], default: '', required: true },
+      { key: 'placement', type: 'placement', label: 'Posizione sulla pagina', default: { page: 1, x: 0.55, y: 0.78, width: 0.3 } },
+      { key: 'opacity', type: 'number', label: 'Opacità %', default: 100, min: 10, max: 100, step: 5 },
+    ],
+  },
+  {
     name: 'merge',
+    group: 'documento',
     label: 'Unisci PDF',
     description: 'unisce',
     minFiles: 2,
@@ -147,6 +203,7 @@ export const OPERATIONS = [
   },
   {
     name: 'convert',
+    group: 'documento',
     label: 'Converti in PDF/A',
     description: 'converte',
     minFiles: 1,
@@ -170,8 +227,17 @@ export function installBridge(overrides = {}) {
       { path: '/tmp/b.pdf', name: 'b.pdf', size: 2048 },
     ]),
     describeDroppedFiles: vi.fn(async () => [{ path: '/tmp/c.pdf', name: 'c.pdf', size: 512 }]),
+    chooseFile: vi.fn(async () => '/tmp/loghi/logo.png'),
+    readFileBytes: vi.fn(async () => new Uint8Array([1, 2, 3])),
     run: vi.fn(async () => ({ ok: true, output: '/tmp/out.pdf', pages: 3, bytes: 4096, pdfa: false })),
     diagnostics: vi.fn(async () => ({ ok: true, heapLimitMb: 4096, totalMemoryMb: 16000 })),
+    inspect: vi.fn(async () => ({
+      ok: true,
+      params: [
+        { key: 'campo:nome', type: 'text', label: 'nome', default: '' },
+        { key: 'campo:accetto', type: 'boolean', label: 'accetto', default: false },
+      ],
+    })),
     info: vi.fn(async () => ({
       name: 'PDFix',
       version: '1.2.3',
@@ -183,6 +249,7 @@ export function installBridge(overrides = {}) {
       platform: 'linux x64',
     })),
     reportBug: vi.fn(async () => ({ ok: true, url: 'mailto:...' })),
+    donate: vi.fn(async () => ({ ok: true, url: 'https://www.paypal.com/paypalme/lorenzodemarco92' })),
     operations: vi.fn(async () => OPERATIONS),
     onProgress: vi.fn((listener) => {
       listeners.progress.push(listener)

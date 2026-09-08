@@ -6,7 +6,7 @@
  * aspetta chi guarda il risultato.
  */
 
-import { degrees } from 'pdf-lib'
+import { degrees } from '@cantoo/pdf-lib'
 import { operationDescriptor } from '../catalog.js'
 import { loadDocument, saveDocument } from '../pdf/document.js'
 import { parsePageSelection } from '../pdf/pages.js'

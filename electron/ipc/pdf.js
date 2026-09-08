@@ -8,7 +8,13 @@
 
 import { dialog, ipcMain } from 'electron'
 import path from 'node:path'
-import { OPERATIONS, inputExtensionsOf, operationDescriptor, outputModeOf } from '../../core/catalog.js'
+import {
+  OPERATIONS,
+  inputExtensionsOf,
+  operationDescriptor,
+  outputExtensionsOf,
+  outputModeOf,
+} from '../../core/catalog.js'
 import { describeFiles } from '../lib/pdf-files.js'
 import { fixtureSaveDir, fixtureSavePath } from '../lib/automation.js'
 import { translator } from '../lib/strings.js'
@@ -40,18 +46,29 @@ async function chooseDestination({ descriptor, files, state, pdfa, window }) {
     return { outputDir: result.filePaths[0] }
   }
 
+  // Quasi tutte le operazioni scrivono un PDF, ma non tutte: il filtro e
+  // l'estensione aggiunta d'ufficio seguono il descrittore, non una costante.
+  const accepted = outputExtensionsOf(descriptor)
+  const isPdf = accepted.includes('.pdf')
+
   const forced = fixtureSavePath()
   const choice = forced
     ? { canceled: false, filePath: forced }
     : await dialog.showSaveDialog(window, {
         title: t('dialog.save.title'),
         defaultPath: defaultOutputPath({ descriptor, files, state, pdfa }),
-        filters: [{ name: t('dialog.save.filter'), extensions: ['pdf'] }],
+        filters: [
+          {
+            name: isPdf ? t('dialog.save.filter') : t('dialog.save.filterData'),
+            extensions: accepted.map((extension) => extension.slice(1)),
+          },
+        ],
       })
   if (choice.canceled || !choice.filePath) return { canceled: true }
 
-  const output = choice.filePath.toLowerCase().endsWith('.pdf') ? choice.filePath : `${choice.filePath}.pdf`
-  return { output }
+  const chosen = choice.filePath
+  const hasAccepted = accepted.some((extension) => chosen.toLowerCase().endsWith(extension))
+  return { output: hasAccepted ? chosen : `${chosen}${accepted[0]}` }
 }
 
 export function registerPdfHandlers({ getWindow, settings, engine }) {
@@ -94,6 +111,19 @@ export function registerPdfHandlers({ getWindow, settings, engine }) {
       { operation: descriptor.name, files, pdfa, params: request?.params ?? {}, ...destination },
       { onProgress: (progress) => event.sender.send('pdf:progress', progress) },
     )
+  })
+
+  /**
+   * Parametri che dipendono dal documento scelto: l'interfaccia li chiede prima
+   * di mostrare la finestra dei valori.
+   */
+  ipcMain.handle('pdf:inspect', async (_event, request) => {
+    const descriptor = operationDescriptor(request?.operation)
+    if (descriptor.optional && !settings.isFeatureEnabled(descriptor.name)) {
+      return { ok: false, error: `Funzionalità disattivata nelle impostazioni: ${descriptor.label}.` }
+    }
+    const files = Array.isArray(request?.files) ? request.files : []
+    return engine.inspect({ operation: descriptor.name, files })
   })
 
   // Diagnostica: gira nello stesso tipo di processo dell'elaborazione, quindi

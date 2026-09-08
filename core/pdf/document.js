@@ -5,7 +5,7 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 
 export const PRODUCER = 'PDFix'
 
@@ -21,6 +21,11 @@ const SAVE_OPTIONS = { useObjectStreams: false }
 
 function describeLoadError(filePath, error) {
   const message = String(error?.message || error)
+  if (/password incorrect/i.test(message)) {
+    // Il messaggio non riporta mai la password: finirebbe nell'interfaccia e
+    // potenzialmente in una segnalazione di errore.
+    return new Error('Password errata: il documento non è stato aperto.')
+  }
   if (/encrypted/i.test(message)) {
     return new Error(`PDF protetto da password: ${filePath}`)
   }
@@ -30,8 +35,16 @@ function describeLoadError(filePath, error) {
   return new Error(`Impossibile leggere ${filePath}: ${message}`)
 }
 
-/** Carica un PDF dal filesystem, normalizzando gli errori in messaggi leggibili. */
-export async function loadDocument(filePath) {
+/**
+ * Carica un PDF dal filesystem, normalizzando gli errori in messaggi leggibili.
+ *
+ * Con `password` il documento cifrato viene aperto e decifrato: da quel momento
+ * è un documento come gli altri, e salvarlo produce un file senza protezione.
+ *
+ * @param {string} filePath
+ * @param {{password?: string}} [options]
+ */
+export async function loadDocument(filePath, { password } = {}) {
   let bytes
   try {
     bytes = await readFile(filePath)
@@ -39,7 +52,10 @@ export async function loadDocument(filePath) {
     throw new Error(`File non leggibile: ${filePath}`)
   }
   try {
-    return await PDFDocument.load(bytes, { updateMetadata: false })
+    return await PDFDocument.load(bytes, {
+      updateMetadata: false,
+      ...(password ? { password } : {}),
+    })
   } catch (error) {
     throw describeLoadError(filePath, error)
   }
@@ -60,7 +76,7 @@ export async function createDocument({ title, creator = PRODUCER, date = new Dat
  * Copia tutte le pagine dei documenti sorgente nel documento di destinazione,
  * nell'ordine ricevuto.
  *
- * @param {import('pdf-lib').PDFDocument} target
+ * @param {import('@cantoo/pdf-lib').PDFDocument} target
  * @param {string[]} filePaths
  * @param {(progress: {index: number, total: number, file: string, pages: number}) => void} [onProgress]
  * @returns {Promise<number>} numero totale di pagine copiate
@@ -96,14 +112,29 @@ export function patchHeaderVersion(bytes, version) {
 /**
  * Serializza il documento e lo scrive su disco.
  *
- * @param {import('pdf-lib').PDFDocument} pdfDoc
+ * @param {import('@cantoo/pdf-lib').PDFDocument} pdfDoc
  * @param {string} outputPath
  * @param {{headerVersion?: string, objectStreams?: boolean}} [options]
  * @returns {Promise<number>} dimensione in byte del file scritto
  */
-export async function saveDocument(pdfDoc, outputPath, { headerVersion, objectStreams = false } = {}) {
-  const bytes = await pdfDoc.save({ ...SAVE_OPTIONS, useObjectStreams: objectStreams })
-  if (headerVersion) patchHeaderVersion(bytes, headerVersion)
+export async function saveDocument(pdfDoc, outputPath, options = {}) {
+  const bytes = await serializeDocument(pdfDoc, options)
   await writeFile(outputPath, bytes)
   return bytes.length
+}
+
+/**
+ * Serializza il documento senza scriverlo.
+ *
+ * Serve a chi deve ancora lavorare sui byte prima di salvarli — la firma
+ * digitale, che inserisce il proprio spazio riservato nel file finito.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFDocument} pdfDoc
+ * @param {{headerVersion?: string, objectStreams?: boolean}} [options]
+ * @returns {Promise<Uint8Array>}
+ */
+export async function serializeDocument(pdfDoc, { headerVersion, objectStreams = false } = {}) {
+  const bytes = await pdfDoc.save({ ...SAVE_OPTIONS, useObjectStreams: objectStreams })
+  if (headerVersion) patchHeaderVersion(bytes, headerVersion)
+  return bytes
 }

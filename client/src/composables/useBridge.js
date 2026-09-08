@@ -9,8 +9,11 @@
 const inertBridge = {
   chooseFiles: async () => [],
   describeDroppedFiles: async () => [],
+  chooseFile: async () => null,
+  readFileBytes: async () => null,
   run: async () => ({ ok: false, error: 'Motore non disponibile fuori dall’applicazione.' }),
   diagnostics: async () => ({ ok: false, error: 'Motore non disponibile.' }),
+  inspect: async () => ({ ok: false, error: 'Motore non disponibile.' }),
   operations: async () => [],
   info: async () => ({ name: 'PDFix', version: '0.0.0', author: 'Lorenzo De Marco', license: 'AGPL-3.0-or-later' }),
   reportBug: async () => ({ ok: false }),

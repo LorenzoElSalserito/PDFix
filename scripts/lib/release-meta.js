@@ -8,9 +8,25 @@
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+/**
+ * Vero se il modulo indicato è stato lanciato direttamente da riga di comando.
+ *
+ * Il confronto passa da `pathToFileURL`: concatenare `file://` al percorso
+ * grezzo fallisce su Windows, dove `process.argv[1]` è `D:\repo\script.js`
+ * mentre `import.meta.url` è `file:///D:/repo/script.js`, e su qualunque
+ * sistema quando il percorso contiene spazi o accenti. Il modulo verrebbe
+ * importato senza eseguire nulla: nessun errore, nessun effetto.
+ *
+ * @param {string} moduleUrl valore di `import.meta.url` del modulo chiamante
+ */
+export function isEntrypoint(moduleUrl) {
+  if (!process.argv[1]) return false
+  return pathToFileURL(process.argv[1]).href === moduleUrl
+}
 
 export const paths = {
   root: repoRoot,
