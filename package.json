@@ -1,7 +1,7 @@
 {
   "name": "pdfix",
   "version": "1.3.3",
-  "description": "Applicazione desktop per unire PDF e convertirli in PDF/A-1b, completamente offline",
+  "description": "Your Swiss Army knife for PDFs",
   "license": "AGPL-3.0-or-later",
   "homepage": "https://github.com/LorenzoElSalserito/PDFix",
   "repository": {
@@ -105,13 +105,13 @@
       ],
       "category": "Office;Utility",
       "icon": "build/icons",
-      "synopsis": "Unione di PDF e conversione in PDF/A, offline",
-      "description": "PDFix unisce più documenti PDF in un unico file e li converte in PDF/A-1b. L'elaborazione è interamente locale: nessun file lascia il computer.",
+      "synopsis": "Your Swiss Army knife for PDFs",
+      "description": "PDFix Is Your Swiss Army knife for PDFs",
       "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
       "desktop": {
         "entry": {
           "Name": "PDFix",
-          "Comment": "Unisci PDF e converti in PDF/A",
+          "Comment": "Your Swiss Army knife for PDFs",
           "Categories": "Office;Utility;",
           "MimeType": "application/pdf;",
           "Keywords": "pdf;merge;unione;pdfa;archiviazione;"
@@ -129,7 +129,7 @@
       "core22": {
         "confinement": "strict",
         "grade": "stable",
-        "summary": "Unione di PDF e conversione in PDF/A, completamente offline",
+        "summary": "Your Swiss Army knife for PDFs",
         "allowNativeWayland": true,
         "plugs": [
           "default",
