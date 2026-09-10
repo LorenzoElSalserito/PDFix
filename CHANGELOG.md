@@ -11,6 +11,13 @@ scrive a mano: `npm run dist` la consolida in una sezione datata, aggiorna
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-09-10
+
+### Fixed
+- La release non tenta più di pubblicare i pacchetti. Con `publish: null` nel manifesto electron-builder risolve comunque il publisher dello Snap Store quando la build parte da un tag: sul runner cercava `snapcraft`, non lo trovava e faceva fallire una release già costruita e verificata. Gli script passano ora `--publish never` — gli artefatti li carica il workflow, non electron-builder.
+- La build macOS produce di nuovo entrambe le architetture. I nomi dei target passati a `electron-builder` sulla riga di comando (`--mac dmg zip`) sostituiscono l'elenco del manifesto, architetture comprese: la CI costruiva solo quella del runner e il DMG Intel non nasceva mai. Ora gli script indicano soltanto il sistema (`--mac`, `--win`, `--linux`) e i formati restano dichiarati in un posto solo, `package.json`.
+- La suite end-to-end sull'applicazione impacchettata parte anche su Windows: veniva avviata tramite `npx`, che lì è `npx.cmd` e `spawnSync` non sa eseguire senza shell. Playwright non partiva e il comando usciva con 1 senza stampare nulla — nemmeno un file di traccia da caricare. Ora si usa direttamente questo Node con la riga di comando di Playwright, e un avvio fallito viene riportato invece di essere ingoiato.
+
 ## [1.3.1] - 2026-09-08
 
 ### Fixed

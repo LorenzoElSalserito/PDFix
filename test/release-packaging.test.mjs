@@ -72,6 +72,8 @@ import {
 
 import { collectProblems } from '../scripts/verify-packaging-assets.js'
 
+import { playwrightCli } from '../scripts/run-packaged-e2e.js'
+
 import { expectedArtifacts, missingArtifacts } from '../scripts/verify-release-artifacts.js'
 
 const hasTool = (command) => spawnSync('command', ['-v', command], { shell: true }).status === 0
@@ -369,6 +371,44 @@ test('l artefatto della release precedente non vale come prova', () => {
   assert.deepEqual(missingArtifacts(['pdfix_v1.0.2_x64.exe'], '1.1.0', attesi), [
     'portable: nessun file .exe per la versione 1.1.0',
   ])
+})
+
+test('gli script di build non elencano i target sulla riga di comando', () => {
+  // I nomi dei target passati a electron-builder sostituiscono l'elenco del
+  // manifesto — architetture comprese. Con `--mac dmg zip` la CI costruiva solo
+  // l'architettura del runner, e il DMG Intel non nasceva mai. I target restano
+  // dichiarati in `build`, la riga di comando sceglie solo il sistema.
+  const scripts = readJson(paths.packageJson).scripts
+  const nomiTarget = /electron-builder[^"]*\b(deb|AppImage|snap|portable|nsis|dmg|zip)\b/
+
+  for (const nome of ['dist', 'dist:linux', 'dist:win', 'dist:mac', 'dist:all']) {
+    assert.doesNotMatch(scripts[nome], nomiTarget, `${nome} non deve fissare i target`)
+  }
+  assert.match(scripts['dist:mac'], /electron-builder --mac /)
+  assert.match(scripts['dist:win'], /electron-builder --win /)
+})
+
+test('nessuno script di build tenta di pubblicare', () => {
+  // Con `publish: null` nel manifesto electron-builder risolve comunque il
+  // publisher dello Snap Store quando la build parte da un tag: sul runner
+  // cercava `snapcraft`, non lo trovava e faceva fallire una release già
+  // costruita e verificata. Gli artefatti li pubblica il workflow, non lui.
+  const scripts = readJson(paths.packageJson).scripts
+
+  for (const [nome, comando] of Object.entries(scripts)) {
+    if (!comando.includes('electron-builder')) continue
+    assert.match(comando, /--publish never/, `${nome} deve disattivare la pubblicazione`)
+  }
+})
+
+test('la suite sull applicazione impacchettata avvia Playwright senza passare da npx', () => {
+  // Su Windows `npx` è `npx.cmd`: `spawnSync` non lo avvia senza shell, il
+  // processo non partiva e il comando usciva con 1 senza una riga di errore.
+  assert.ok(existsSync(playwrightCli()), 'la riga di comando di Playwright deve esistere')
+
+  const sorgente = readFileSync(path.join(paths.root, 'scripts', 'run-packaged-e2e.js'), 'utf8')
+  assert.doesNotMatch(sorgente, /spawnSync\(\s*'npx'/, 'niente npx: si usa questo stesso Node')
+  assert.match(sorgente, /if \(result\.error\) throw result\.error/, 'un avvio fallito va detto')
 })
 
 test('il manutentore e lo stesso in tutti i punti in cui compare', () => {

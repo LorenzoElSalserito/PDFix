@@ -74,6 +74,17 @@ function extractArtifact(artifactPath) {
   throw new Error(`estrazione non supportata per ${path.basename(artifactPath)}`)
 }
 
+/**
+ * Riga di comando di Playwright, eseguita con questo stesso Node.
+ *
+ * Non si passa da `npx`: su Windows è `npx.cmd`, che `spawnSync` non sa
+ * avviare senza shell — il processo non partiva e la suite sull'applicazione
+ * impacchettata falliva senza dire perché.
+ */
+export function playwrightCli() {
+  return path.join(paths.root, 'node_modules', 'playwright', 'cli.js')
+}
+
 function parseArgs(argv) {
   const options = { from: null }
   for (let index = 0; index < argv.length; index++) {
@@ -104,11 +115,14 @@ function main() {
 
   try {
     console.log(`Suite E2E sull'applicazione impacchettata: ${path.relative(paths.root, executable)}`)
-    const result = spawnSync('npx', ['playwright', 'test'], {
+    const result = spawnSync(process.execPath, [playwrightCli(), 'test'], {
       cwd: paths.root,
       stdio: 'inherit',
       env: { ...process.env, PDFIX_E2E_EXECUTABLE: executable },
     })
+    // Un avvio fallito non ha uno stato d'uscita: senza questo controllo il
+    // comando terminava con 1 e nemmeno una riga di spiegazione.
+    if (result.error) throw result.error
     process.exitCode = result.status ?? 1
   } finally {
     if (temporary) rmSync(temporary, { recursive: true, force: true })
