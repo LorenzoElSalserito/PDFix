@@ -556,11 +556,32 @@ test('la guardia copre tutti i file in cui la versione compare', () => {
 })
 
 test('le guardie di git sono versionate ed eseguibili', () => {
+  // Il permesso da controllare è quello registrato nell'indice di git, non
+  // quello del filesystem: Windows non ha il bit di esecuzione e `statSync`
+  // lì risponde sempre di no, mentre è la modalità 100755 nell'indice a
+  // rendere l'aggancio eseguibile su ogni sistema che fa il checkout.
+  const indice = spawnSync('git', ['ls-files', '--stage', '--', '.githooks'], {
+    cwd: paths.root,
+    encoding: 'utf8',
+  })
+  assert.equal(indice.status, 0, indice.stderr)
+
+  const modi = new Map(
+    indice.stdout
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((riga) => {
+        const [modo, , , percorso] = riga.split(/\s+/)
+        return [percorso.replace(/^\.githooks\//, ''), modo]
+      }),
+  )
+
   const dir = path.join(paths.root, '.githooks')
   for (const hook of ['pre-commit', 'pre-push']) {
     const file = path.join(dir, hook)
     assert.ok(existsSync(file), `manca ${hook}`)
-    assert.ok(statSync(file).mode & 0o111, `${hook} deve essere eseguibile`)
+    assert.equal(modi.get(hook), '100755', `${hook} deve essere eseguibile anche dopo un checkout`)
     assert.match(readFileSync(file, 'utf8'), /verify-committed-version\.js/)
   }
 
