@@ -1,6 +1,30 @@
 {
   "releases": [
     {
+      "version": "1.3.3",
+      "date": "Thu, 10 Sep 2026 10:04:24 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
+      "entries": [
+        "Fixed: `run-packaged-e2e.js` non esegue più la suite quando viene semplicemente importato. Il suo `main()` stava al primo livello del modulo, senza la guardia di ingresso che hanno tutti gli altri script: importarlo — cosa che fa un test per riusarne una funzione — avviava l'intera suite o usciva con un errore se non c'era un'applicazione impacchettata. In locale la cartella `release/` esisteva e i test passavano; su ogni runner cadeva l'intero file di test. Un test nuovo pretende ora la guardia da qualunque script abbia un `main()`.",
+        "Fixed: Il marker di release sospesa non viene più armato da una risincronizzazione (`version:bump --no-bump`) né da una build in CI: nessuna delle due consuma un numero di versione, e trovarselo armato inchiodava il bump successivo alla versione corrente.",
+        "Fixed: `version:bump` elenca i file appena riscritti: la versione vive in quattro posti e committarne solo una parte fa fallire la guardia di coerenza a release già avviata."
+      ]
+    },
+    {
+      "version": "1.3.2",
+      "date": "Thu, 10 Sep 2026 09:51:40 +0200",
+      "distribution": "unstable",
+      "urgency": "medium",
+      "maintainer": "Lorenzo De Marco <commercial.lorenzodm@gmail.com>",
+      "entries": [
+        "Fixed: La release non tenta più di pubblicare i pacchetti. Con `publish: null` nel manifesto electron-builder risolve comunque il publisher dello Snap Store quando la build parte da un tag: sul runner cercava `snapcraft`, non lo trovava e faceva fallire una release già costruita e verificata. Gli script passano ora `--publish never` — gli artefatti li carica il workflow, non electron-builder.",
+        "Fixed: La build macOS produce di nuovo entrambe le architetture. I nomi dei target passati a `electron-builder` sulla riga di comando (`--mac dmg zip`) sostituiscono l'elenco del manifesto, architetture comprese: la CI costruiva solo quella del runner e il DMG Intel non nasceva mai. Ora gli script indicano soltanto il sistema (`--mac`, `--win`, `--linux`) e i formati restano dichiarati in un posto solo, `package.json`.",
+        "Fixed: La suite end-to-end sull'applicazione impacchettata parte anche su Windows: veniva avviata tramite `npx`, che lì è `npx.cmd` e `spawnSync` non sa eseguire senza shell. Playwright non partiva e il comando usciva con 1 senza stampare nulla — nemmeno un file di traccia da caricare. Ora si usa direttamente questo Node con la riga di comando di Playwright, e un avvio fallito viene riportato invece di essere ingoiato."
+      ]
+    },
+    {
       "version": "1.3.1",
       "date": "Tue, 08 Sep 2026 23:45:43 +0200",
       "distribution": "unstable",

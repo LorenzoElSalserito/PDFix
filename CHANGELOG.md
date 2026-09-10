@@ -11,6 +11,13 @@ scrive a mano: `npm run dist` la consolida in una sezione datata, aggiorna
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-09-10
+
+### Fixed
+- `run-packaged-e2e.js` non esegue più la suite quando viene semplicemente importato. Il suo `main()` stava al primo livello del modulo, senza la guardia di ingresso che hanno tutti gli altri script: importarlo — cosa che fa un test per riusarne una funzione — avviava l'intera suite o usciva con un errore se non c'era un'applicazione impacchettata. In locale la cartella `release/` esisteva e i test passavano; su ogni runner cadeva l'intero file di test. Un test nuovo pretende ora la guardia da qualunque script abbia un `main()`.
+- Il marker di release sospesa non viene più armato da una risincronizzazione (`version:bump --no-bump`) né da una build in CI: nessuna delle due consuma un numero di versione, e trovarselo armato inchiodava il bump successivo alla versione corrente.
+- `version:bump` elenca i file appena riscritti: la versione vive in quattro posti e committarne solo una parte fa fallire la guardia di coerenza a release già avviata.
+
 ## [1.3.2] - 2026-09-10
 
 ### Fixed
