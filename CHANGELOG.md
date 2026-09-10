@@ -13,6 +13,9 @@ scrive a mano: `npm run dist` la consolida in una sezione datata, aggiorna
 
 ## [1.3.3] - 2026-09-10
 
+### Added
+- Due guardie di git versionate in `.githooks/`, attivate da sole dopo `npm install`. Prima del commit e prima del push verificano che le quattro dichiarazioni di versione — `package.json`, `package-lock.json`, `release-history.json`, `CHANGELOG.md` — combacino **nell'indice**, cioè in quello che il commit conterrà davvero, non nella cartella di lavoro. Tre release di fila si sono fermate sul runner per un commit che ne conteneva solo una parte: ora la cosa si ferma prima di partire, dicendo quali file mancano. `npm run verify:version` esegue lo stesso controllo a mano.
+
 ### Fixed
 - `run-packaged-e2e.js` non esegue più la suite quando viene semplicemente importato. Il suo `main()` stava al primo livello del modulo, senza la guardia di ingresso che hanno tutti gli altri script: importarlo — cosa che fa un test per riusarne una funzione — avviava l'intera suite o usciva con un errore se non c'era un'applicazione impacchettata. In locale la cartella `release/` esisteva e i test passavano; su ogni runner cadeva l'intero file di test. Un test nuovo pretende ora la guardia da qualunque script abbia un `main()`.
 - Il marker di release sospesa non viene più armato da una risincronizzazione (`version:bump --no-bump`) né da una build in CI: nessuna delle due consuma un numero di versione, e trovarselo armato inchiodava il bump successivo alla versione corrente.

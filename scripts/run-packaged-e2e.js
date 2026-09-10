@@ -16,7 +16,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { currentVersion, paths, pickArtifact } from './lib/release-meta.js'
+import { currentVersion, isEntrypoint, paths, pickArtifact } from './lib/release-meta.js'
 
 const releaseDir = path.join(paths.root, 'release')
 
@@ -129,9 +129,15 @@ function main() {
   }
 }
 
-try {
-  main()
-} catch (error) {
-  console.error(`run-packaged-e2e: ${error.message}`)
-  process.exit(1)
+// La guardia non è un dettaglio: senza, importare questo modulo — lo fanno i
+// test, per riusarne le funzioni — eseguirebbe l'intera suite, o uscirebbe con
+// un errore se non c'è un'applicazione impacchettata. È quello che è successo:
+// verde in locale, dove la cartella `release/` esisteva, rosso su ogni runner.
+if (isEntrypoint(import.meta.url)) {
+  try {
+    main()
+  } catch (error) {
+    console.error(`run-packaged-e2e: ${error.message}`)
+    process.exit(1)
+  }
 }

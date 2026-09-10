@@ -1,0 +1,3 @@
+#!/bin/sh
+# Ultima rete prima della CI: quello che sta per partire deve essere coerente.
+exec node scripts/verify-committed-version.js --head

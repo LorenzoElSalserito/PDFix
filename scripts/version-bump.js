@@ -16,6 +16,7 @@
  */
 
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
 import {
   ARTIFACT_NAME,
   DISTRIBUTION,
@@ -140,8 +141,21 @@ function main(argv) {
   }
 
   flush(writes)
-  writeFileSync(paths.pendingMarker, stringifyJson({ version, createdAt: date.toISOString() }), 'utf8')
+
+  // Il marker serve a non bruciare numeri con le build fallite: ha senso solo
+  // quando un numero è stato appena consumato. Una risincronizzazione — o una
+  // build in CI, dove la versione arriva dal commit — non ne consuma nessuno, e
+  // armarlo lì significherebbe inchiodare al numero corrente il bump successivo.
+  if (version !== current) {
+    writeFileSync(paths.pendingMarker, stringifyJson({ version, createdAt: date.toISOString() }), 'utf8')
+  }
+
+  // I file riscritti vanno committati insieme: la versione vive in quattro
+  // posti e la guardia di coerenza rifiuta un albero in cui uno solo è
+  // avanzato. Elencarli evita di scoprirlo dal fallimento della release.
+  const relativi = writes.map((write) => path.relative(paths.root, write.file))
   console.log(`Versione ${version} (${reason}) propagata a ${writes.length} file.`)
+  console.log(`Da committare insieme: ${relativi.join(' ')}`)
 }
 
 /** Rimuove il marker di release sospesa: la release è andata a buon fine. */

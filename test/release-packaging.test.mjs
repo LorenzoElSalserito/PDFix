@@ -74,6 +74,9 @@ import { collectProblems } from '../scripts/verify-packaging-assets.js'
 
 import { playwrightCli } from '../scripts/run-packaged-e2e.js'
 
+import { VERSION_FILES, versionProblems } from '../scripts/verify-committed-version.js'
+import { installHooks } from '../scripts/install-hooks.js'
+
 import { expectedArtifacts, missingArtifacts } from '../scripts/verify-release-artifacts.js'
 
 const hasTool = (command) => spawnSync('command', ['-v', command], { shell: true }).status === 0
@@ -456,6 +459,19 @@ test('in CI la versione non avanza', () => {
   assert.equal(resolveTargetVersion({ current: '2.0.0', options, pending: null, env: {} }).version, '2.0.1')
 })
 
+test('una risincronizzazione non arma il marker di release sospesa', () => {
+  // Il marker esiste per non bruciare numeri con le build fallite. Una
+  // risincronizzazione non consuma nessun numero: armarlo lì inchioderebbe il
+  // bump successivo alla versione corrente, che è esattamente quello che è
+  // successo dopo un `--no-bump`.
+  const sorgente = readFileSync(path.join(paths.root, 'scripts', 'version-bump.js'), 'utf8')
+  assert.match(
+    sorgente,
+    /if \(version !== current\) \{\s*\n\s*writeFileSync\(paths\.pendingMarker/,
+    'il marker si scrive solo quando la versione avanza',
+  )
+})
+
 test('il marker di release sospesa fa riusare la stessa versione', () => {
   const options = parseArgs([])
   const pending = { version: '2.0.0' }
@@ -508,6 +524,66 @@ test('isEntrypoint riconosce lo script anche con spazi nel percorso', () => {
     assert.equal(isEntrypoint('file:///altro/script.js'), false)
   } finally {
     process.argv[1] = originale
+  }
+})
+
+test('la guardia della versione confronta le quattro dichiarazioni', () => {
+  const coerente = {
+    packageJson: JSON.stringify({ version: '2.0.0' }),
+    packageLock: JSON.stringify({ version: '2.0.0', packages: { '': { version: '2.0.0' } } }),
+    releaseHistory: JSON.stringify({ releases: [{ version: '2.0.0' }] }),
+    changelog: '# Changelog\n\n## [2.0.0] - 2026-01-01\n',
+  }
+  assert.deepEqual(versionProblems(coerente), [])
+
+  // È il caso reale: il bump riscrive quattro file, al commit ne entrano tre.
+  const parziale = { ...coerente, packageJson: JSON.stringify({ version: '1.9.9' }) }
+  const problemi = versionProblems(parziale)
+  assert.equal(problemi.length, 4, problemi.join('\n'))
+  assert.match(problemi[0], /package-lock\.json dichiara 2\.0\.0, package\.json 1\.9\.9/)
+  assert.match(problemi[2], /release-history\.json non ha un record per 1\.9\.9/)
+  assert.match(problemi[3], /CHANGELOG\.md non ha la sezione/)
+})
+
+test('la guardia copre tutti i file in cui la versione compare', () => {
+  // Se un giorno la versione finisse in un quinto posto, l'elenco resterebbe
+  // indietro in silenzio: qui si controlla contro i percorsi veri.
+  const attesi = [paths.packageJson, paths.packageLock, paths.releaseHistory, paths.changelog]
+  assert.deepEqual(
+    VERSION_FILES,
+    attesi.map((file) => path.relative(paths.root, file)),
+  )
+})
+
+test('le guardie di git sono versionate ed eseguibili', () => {
+  const dir = path.join(paths.root, '.githooks')
+  for (const hook of ['pre-commit', 'pre-push']) {
+    const file = path.join(dir, hook)
+    assert.ok(existsSync(file), `manca ${hook}`)
+    assert.ok(statSync(file).mode & 0o111, `${hook} deve essere eseguibile`)
+    assert.match(readFileSync(file, 'utf8'), /verify-committed-version\.js/)
+  }
+
+  // L'installazione è automatica dopo `npm install`, e non tocca la CI.
+  assert.equal(readJson(paths.packageJson).scripts.prepare, 'node scripts/install-hooks.js')
+  assert.match(installHooks({ env: { CI: '1' } }), /saltata/)
+})
+
+test('ogni script protegge il proprio avvio con la guardia di ingresso', () => {
+  // Un `main()` chiamato al primo livello del modulo si esegue anche quando lo
+  // script viene importato — dai test, per riusarne le funzioni. È successo con
+  // `run-packaged-e2e`: in locale trovava la cartella `release/` e passava, su
+  // ogni runner usciva con 1 e portava giù l'intero file di test.
+  const dir = path.join(paths.root, 'scripts')
+  for (const file of readdirSync(dir).filter((name) => name.endsWith('.js'))) {
+    const source = readFileSync(path.join(dir, file), 'utf8')
+    if (!/\bfunction main\b/.test(source)) continue
+
+    assert.match(
+      source,
+      /if \(isEntrypoint\(import\.meta\.url\)\)[\s\S]{0,400}\bmain\(/,
+      `${file}: main() deve stare dentro if (isEntrypoint(import.meta.url))`,
+    )
   }
 })
 

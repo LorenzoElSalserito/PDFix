@@ -1,0 +1,4 @@
+#!/bin/sh
+# Blocca un commit che spezzerebbe la coerenza della versione: il confronto
+# guarda l'indice, cioè quello che il commit conterrà davvero.
+exec node scripts/verify-committed-version.js --staged
